@@ -2,6 +2,7 @@
 
 import { useActionState } from "react"
 import { entra } from "@/app/accesso/azioni"
+import { MarchioComune } from "@/components/marchio-comune"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 
@@ -10,8 +11,9 @@ export function ModuloAccesso({ configurata }: { configurata: boolean }) {
 
   return (
     <main className="mx-auto flex min-h-full w-full max-w-md flex-1 flex-col justify-center px-4 py-16">
-      <p className="text-sm font-medium text-primary">Comune di San Lorenzo del Vallo</p>
-      <h1 className="mt-2 font-serif text-4xl tracking-tight">Buoni mensa</h1>
+      <MarchioComune>
+        <h1 className="mt-1 font-serif text-4xl tracking-tight">Buoni mensa</h1>
+      </MarchioComune>
       <p className="mt-3 text-muted-foreground">
         Accesso riservato all’ufficio. Il registro contiene codici fiscali e non è pubblico.
       </p>

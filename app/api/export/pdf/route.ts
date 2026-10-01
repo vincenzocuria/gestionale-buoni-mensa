@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { bloccaSeChiuso } from "@/lib/auth/guardia"
 import { dbPronto, messaggioDatabase } from "@/lib/db/client"
 import { applicaVista, righeAnno } from "@/lib/export/leggi"
+import { leggiPeriodo } from "@/lib/pagamenti/periodo"
 import { creaPdf } from "@/lib/export/pdf"
 import { fogliExport } from "@/lib/export/tabelle"
 
@@ -18,7 +19,7 @@ export async function GET(request: Request) {
     const client = await dbPronto()
     const dellAnno = await righeAnno(client, anno)
     if (!dellAnno) return NextResponse.json({ errore: "Anno scolastico non valido." }, { status: 400 })
-    const elenco = applicaVista(dellAnno, url.searchParams.get("filtro"), url.searchParams.get("q") ?? "")
+    const elenco = applicaVista(dellAnno, url.searchParams.get("filtro"), url.searchParams.get("q") ?? "", leggiPeriodo(url.searchParams))
     const corpo = creaPdf(`Buoni mensa ${anno}`, fogliExport(elenco, dellAnno))
     return new NextResponse(Buffer.from(corpo), {
       headers: {

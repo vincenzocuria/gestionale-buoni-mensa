@@ -3,19 +3,24 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { esci } from "@/app/accesso/azioni"
-import { AuditConsegne } from "@/components/audit-consegne"
 import { AzioniConsegna } from "@/components/azioni-consegna"
+import { AzioniConsegnaGruppo } from "@/components/azioni-consegna-gruppo"
 import { BarraStrumenti } from "@/components/barra-strumenti"
 import { ElencoPagamenti } from "@/components/elenco-pagamenti"
+import { FiltroPeriodo } from "@/components/filtro-periodo"
+import { MarchioComune } from "@/components/marchio-comune"
+import { ModaleGruppo } from "@/components/modale-gruppo"
 import { RiepilogoImport } from "@/components/riepilogo-import"
 import { SelettoreAnno } from "@/components/selettore-anno"
 import { StrisciaKpi } from "@/components/striscia-kpi"
 import { Button } from "@/components/ui/button"
 import { analizzaBlocchetti } from "@/lib/audit/gruppi"
 import { annoPredefinito, anniSelezionabili, righeDellAnno } from "@/lib/anno-scolastico/calcola"
-import { filtraPagamenti } from "@/lib/pagamenti/filtra"
 import { calcolaKpi } from "@/lib/pagamenti/kpi"
+import { filtraPeriodo, oggiLocale, PERIODO_VUOTO, type Periodo } from "@/lib/pagamenti/periodo"
+import { alternaOrdine, ordinaVoci, type OrdineElenco } from "@/lib/pagamenti/ordina"
 import { slicePagina } from "@/lib/pagamenti/pagina"
+import { compattaElenco, contaFiltri, filtraVoci } from "@/lib/pagamenti/voci"
 import type { FiltroElenco, Kpi, RigaElenco, RiepilogoImport as Riepilogo } from "@/lib/pagamenti/tipi"
 
 type Carico = {
@@ -30,9 +35,13 @@ export function RegistroMensa() {
   const [tentativo, setTentativo] = useState(0)
   const [anno, setAnno] = useState<string | null>(null)
   const [filtro, setFiltro] = useState<FiltroElenco>("tutti")
+  const [periodo, setPeriodo] = useState<Periodo>(PERIODO_VUOTO)
+  const [oggi] = useState(oggiLocale)
   const [ricerca, setRicerca] = useState("")
   const [pagina, setPagina] = useState(1)
+  const [ordine, setOrdine] = useState<OrdineElenco | null>(null)
   const [pendingGruppo, setPendingGruppo] = useState<string | null>(null)
+  const [gruppoAperto, setGruppoAperto] = useState<string | null>(null)
   const [riepilogo, setRiepilogo] = useState<Riepilogo | null>(null)
   const [erroreImport, setErroreImport] = useState<string | null>(null)
   const [importando, setImportando] = useState(false)
@@ -74,8 +83,18 @@ export function RegistroMensa() {
   const delAnno = useMemo(() => (carico ? righeDellAnno(carico.righe, annoAttivo) : []), [carico, annoAttivo])
   const kpi = useMemo(() => calcolaKpi(delAnno), [delAnno])
   const analisi = useMemo(() => analizzaBlocchetti(delAnno), [delAnno])
-  const visibili = useMemo(() => filtraPagamenti(delAnno, filtro, ricerca), [delAnno, filtro, ricerca])
-  const paginati = useMemo(() => slicePagina(visibili, pagina), [visibili, pagina])
+  const voci = useMemo(() => compattaElenco(delAnno, analisi), [delAnno, analisi])
+  const nelPeriodo = useMemo(() => filtraPeriodo(voci, periodo), [voci, periodo])
+  const visibili = useMemo(() => filtraVoci(nelPeriodo, filtro, ricerca), [nelPeriodo, filtro, ricerca])
+  const ordinate = useMemo(() => ordinaVoci(visibili, ordine), [visibili, ordine])
+  const conteggi = useMemo(() => contaFiltri(nelPeriodo, ricerca), [nelPeriodo, ricerca])
+  const paginati = useMemo(() => slicePagina(ordinate, pagina), [ordinate, pagina])
+  const dettaglio = analisi.gruppi.find((gruppo) => gruppo.id === gruppoAperto) ?? null
+  const righeDettaglio = dettaglio
+    ? dettaglio.pagamenti
+        .map((pagamento) => delAnno.find((riga) => riga.iuv === pagamento.iuv))
+        .filter((riga): riga is RigaElenco => riga != null)
+    : []
 
   async function importa(file: File) {
     setImportando(true)
@@ -153,13 +172,12 @@ export function RegistroMensa() {
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-6 sm:px-6">
       <header className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-5">
-        <div>
-          <p className="text-sm font-medium text-primary">Comune di San Lorenzo del Vallo</p>
-          <h1 className="font-serif text-4xl tracking-tight">Buoni mensa</h1>
+        <MarchioComune>
+          <h1 className="mt-1 font-serif text-4xl tracking-tight">Buoni mensa</h1>
           <p className="mt-1 max-w-xl text-sm text-muted-foreground">
             Consegne dei blocchetti. Un nuovo export Siscom aggiorna solo i bollettini ancora aperti.
           </p>
-        </div>
+        </MarchioComune>
         <form action={esci}>
           <Button type="submit" variant="outline">
             Esci
@@ -174,20 +192,19 @@ export function RegistroMensa() {
             attivo={annoAttivo}
             onCambio={(scelto) => {
               setAnno(scelto)
+              setPeriodo(PERIODO_VUOTO)
               setPagina(1)
             }}
           />
         ) : null}
         {carico ? <StrisciaKpi kpi={kpi} /> : null}
-        {carico ? (
-          <AuditConsegne gruppi={analisi.gruppi} anno={annoAttivo} pendingId={pendingGruppo} onConsegna={consegnaGruppo} />
-        ) : null}
         <BarraStrumenti
           filtro={filtro}
           ricerca={ricerca}
-          righe={delAnno}
+          conteggi={conteggi}
           importando={importando}
           anno={annoAttivo}
+          periodo={periodo}
           onFiltro={(scelto) => {
             setFiltro(scelto)
             setPagina(1)
@@ -197,6 +214,14 @@ export function RegistroMensa() {
             setPagina(1)
           }}
           onFile={importa}
+        />
+        <FiltroPeriodo
+          periodo={periodo}
+          oggi={oggi}
+          onCambio={(scelto) => {
+            setPeriodo(scelto)
+            setPagina(1)
+          }}
         />
         {riepilogo ? <RiepilogoImport riepilogo={riepilogo} /> : null}
         {erroreImport ? (
@@ -210,7 +235,7 @@ export function RegistroMensa() {
           </p>
         ) : null}
         <ElencoPagamenti
-          righe={paginati.voci}
+          voci={paginati.voci}
           totale={delAnno.length}
           filtrati={visibili.length}
           pagina={paginati.pagina}
@@ -218,7 +243,6 @@ export function RegistroMensa() {
           dal={paginati.dal}
           al={paginati.al}
           onPagina={setPagina}
-          audit={analisi.perIuv}
           filtro={filtro}
           ricerca={ricerca}
           caricamento={caricamento}
@@ -229,15 +253,36 @@ export function RegistroMensa() {
             setCaricamento(true)
             setTentativo((n) => n + 1)
           }}
+          onApriGruppo={setGruppoAperto}
+          azioniGruppo={(gruppo) => (
+            <AzioniConsegnaGruppo
+              gruppo={gruppo}
+              pending={pendingGruppo === gruppo.id}
+              onConsegna={(azione) => consegnaGruppo(gruppo.id, azione)}
+            />
+          )}
           azioni={(riga) => (
             <AzioniConsegna
               riga={riga}
-              esito={analisi.perIuv.get(riga.iuv)?.esito}
               pending={pendingIuv === riga.iuv}
               onAzione={(azione) => consegna(riga.iuv, azione)}
             />
           )}
+          ordine={ordine}
+          onOrdina={(colonna) => {
+            setOrdine((attuale) => alternaOrdine(attuale, colonna))
+            setPagina(1)
+          }}
         />
+        {dettaglio ? (
+          <ModaleGruppo
+            gruppo={dettaglio}
+            righe={righeDettaglio}
+            pending={pendingGruppo === dettaglio.id}
+            onChiudi={() => setGruppoAperto(null)}
+            onConsegna={(azione) => consegnaGruppo(dettaglio.id, azione)}
+          />
+        ) : null}
       </div>
     </div>
   )

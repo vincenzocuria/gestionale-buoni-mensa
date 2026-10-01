@@ -4,24 +4,27 @@ import { useRef } from "react"
 import { FileSpreadsheet, FileText, Upload } from "lucide-react"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { FILTRI, filtraPagamenti } from "@/lib/pagamenti/filtra"
-import type { FiltroElenco, RigaElenco } from "@/lib/pagamenti/tipi"
+import { FILTRI } from "@/lib/pagamenti/filtra"
+import type { Periodo } from "@/lib/pagamenti/periodo"
+import type { FiltroElenco } from "@/lib/pagamenti/tipi"
 
 export function BarraStrumenti({
   filtro,
   ricerca,
-  righe,
+  conteggi,
   importando,
   anno,
+  periodo,
   onFiltro,
   onRicerca,
   onFile,
 }: {
   filtro: FiltroElenco
   ricerca: string
-  righe: RigaElenco[]
+  conteggi: Record<FiltroElenco, number>
   importando: boolean
   anno: string
+  periodo: Periodo
   onFiltro: (filtro: FiltroElenco) => void
   onRicerca: (valore: string) => void
   onFile: (file: File) => void
@@ -44,11 +47,11 @@ export function BarraStrumenti({
           />
         </div>
         <div className="flex flex-wrap gap-2">
-          <a className={buttonVariants({ variant: "outline" })} href={linkExport("excel", anno, filtro, ricerca)}>
+          <a className={buttonVariants({ variant: "outline" })} href={linkExport("excel", anno, filtro, ricerca, periodo)}>
             <FileSpreadsheet />
             Excel
           </a>
-          <a className={buttonVariants({ variant: "outline" })} href={linkExport("pdf", anno, filtro, ricerca)}>
+          <a className={buttonVariants({ variant: "outline" })} href={linkExport("pdf", anno, filtro, ricerca, periodo)}>
             <FileText />
             PDF
           </a>
@@ -72,7 +75,7 @@ export function BarraStrumenti({
       <div className="flex flex-wrap gap-2" role="group" aria-label="Filtri">
         {FILTRI.map((voce) => {
           const attivo = voce.id === filtro
-          const conteggio = filtraPagamenti(righe, voce.id, ricerca).length
+          const conteggio = conteggi[voce.id]
           return (
             <Button
               key={voce.id}
@@ -92,7 +95,15 @@ export function BarraStrumenti({
   )
 }
 
-function linkExport(formato: "excel" | "pdf", anno: string, filtro: FiltroElenco, ricerca: string): string {
-  const params = new URLSearchParams({ anno, filtro, q: ricerca })
+function linkExport(
+  formato: "excel" | "pdf",
+  anno: string,
+  filtro: FiltroElenco,
+  ricerca: string,
+  periodo: Periodo,
+): string {
+  const params = new URLSearchParams({ anno, filtro, q: ricerca, campo: periodo.campo })
+  if (periodo.dal) params.set("dal", periodo.dal)
+  if (periodo.al) params.set("al", periodo.al)
   return `/api/export/${formato}?${params}`
 }

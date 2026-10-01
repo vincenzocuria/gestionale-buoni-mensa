@@ -1,18 +1,21 @@
 import type { ReactNode } from "react"
+import { cn } from "cn"
+import { IntestazioneOrdine } from "@/components/intestazione-ordine"
 import { Paginazione } from "@/components/paginazione"
+import type { GruppoAudit } from "@/lib/audit/tipi"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import type { EsitoAuditRiga } from "@/lib/audit/tipi"
 import { formatDataIt } from "@/lib/format/data-it"
 import { formatEuro } from "@/lib/format/euro"
+import { COLONNE_ELENCO, type ColonnaElenco, type OrdineElenco } from "@/lib/pagamenti/ordina"
+import { classeSfondoVoce } from "@/lib/pagamenti/sfondo-stato"
 import { ETICHETTA_STATO } from "@/lib/pagamenti/stato"
-import type { FiltroElenco, RigaElenco } from "@/lib/pagamenti/tipi"
-
-export type SchedaRiga = { esito: EsitoAuditRiga; testo: string }
+import type { FiltroElenco, RigaElenco, StatoPagamento } from "@/lib/pagamenti/tipi"
+import { dataPiuRecente, statoGruppo, type VoceElenco } from "@/lib/pagamenti/voci"
 
 export function ElencoPagamenti({
-  righe,
+  voci,
   totale,
   filtrati,
   pagina,
@@ -20,16 +23,19 @@ export function ElencoPagamenti({
   dal,
   al,
   onPagina,
-  audit,
   filtro,
   ricerca,
   caricamento,
   errore,
   pendingIuv,
   onRiprova,
+  onApriGruppo,
   azioni,
+  azioniGruppo,
+  ordine,
+  onOrdina,
 }: {
-  righe: RigaElenco[]
+  voci: VoceElenco[]
   totale: number
   filtrati: number
   pagina: number
@@ -37,14 +43,17 @@ export function ElencoPagamenti({
   dal: number
   al: number
   onPagina: (pagina: number) => void
-  audit: Map<string, SchedaRiga>
   filtro: FiltroElenco
   ricerca: string
   caricamento: boolean
   errore: string | null
   pendingIuv: string | null
   onRiprova: () => void
+  onApriGruppo: (id: string) => void
   azioni: (riga: RigaElenco) => ReactNode
+  azioniGruppo: (gruppo: GruppoAudit) => ReactNode
+  ordine: OrdineElenco | null
+  onOrdina: (colonna: ColonnaElenco) => void
 }) {
   if (caricamento) {
     return (
@@ -65,7 +74,7 @@ export function ElencoPagamenti({
     )
   }
 
-  if (righe.length === 0) {
+  if (voci.length === 0) {
     return (
       <p className="rounded-xl bg-card px-4 py-8 text-sm text-muted-foreground ring-1 ring-foreground/10">
         {messaggioVuoto(totale, filtro, ricerca)}
@@ -75,85 +84,141 @@ export function ElencoPagamenti({
 
   return (
     <div>
+      <div className="mb-3 flex flex-wrap gap-1 md:hidden" role="group" aria-label="Ordina elenco">
+        {COLONNE_ELENCO.map((colonna) => {
+          const attiva = ordine?.colonna === colonna.id
+          return (
+            <Button
+              key={colonna.id}
+              type="button"
+              size="sm"
+              variant={attiva ? "default" : "outline"}
+              onClick={() => onOrdina(colonna.id)}
+            >
+              {colonna.etichetta}
+              {attiva ? (ordine.verso === "asc" ? " ↑" : " ↓") : ""}
+            </Button>
+          )
+        })}
+      </div>
       <div className="hidden md:block">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Debitore</TableHead>
-              <TableHead>Importo</TableHead>
-              <TableHead>Blocchetti</TableHead>
-              <TableHead>Pagamento</TableHead>
-              <TableHead>Scadenza</TableHead>
-              <TableHead>IUV</TableHead>
-              <TableHead>Stato</TableHead>
+              {COLONNE_ELENCO.map((colonna) => (
+                <IntestazioneOrdine
+                  key={colonna.id}
+                  colonna={colonna.id}
+                  etichetta={colonna.etichetta}
+                  ordine={ordine}
+                  onOrdina={onOrdina}
+                />
+              ))}
               <TableHead>Azione</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {righe.map((riga) => (
-              <TableRow key={riga.iuv}>
-                <TableCell className="whitespace-normal font-medium">
-                  <Debitore riga={riga} scheda={audit.get(riga.iuv)} />
-                </TableCell>
-                <TableCell>{formatEuro(riga.importoCentesimi)}</TableCell>
-                <TableCell>
-                  <Blocchetti riga={riga} />
-                </TableCell>
-                <TableCell>{formatDataIt(riga.dataPagamento)}</TableCell>
-                <TableCell>{formatDataIt(riga.dataScadenza)}</TableCell>
-                <TableCell className="font-mono text-xs">{riga.iuv}</TableCell>
-                <TableCell>
-                  <Stato riga={riga} />
-                </TableCell>
-                <TableCell>{azioni(riga)}</TableCell>
-              </TableRow>
-            ))}
+            {voci.map((voce) =>
+              voce.tipo === "singola" ? (
+                <TableRow key={voce.id} className={classeSfondoVoce(voce)}>
+                  <TableCell className="whitespace-normal font-medium">{voce.riga.debitore}</TableCell>
+                  <TableCell>{formatEuro(voce.riga.importoCentesimi)}</TableCell>
+                  <TableCell>
+                    <Blocchetti riga={voce.riga} />
+                  </TableCell>
+                  <TableCell>{formatDataIt(voce.riga.dataPagamento)}</TableCell>
+                  <TableCell>{formatDataIt(voce.riga.dataScadenza)}</TableCell>
+                  <TableCell className="font-mono text-xs">{voce.riga.iuv}</TableCell>
+                  <TableCell>
+                    <Stato stato={voce.riga.stato} />
+                  </TableCell>
+                  <TableCell>{azioni(voce.riga)}</TableCell>
+                </TableRow>
+              ) : (
+                <RigaGruppo key={voce.id} voce={voce} onApri={onApriGruppo} azioni={azioniGruppo} />
+              ),
+            )}
           </TableBody>
         </Table>
       </div>
       <ul className="flex flex-col gap-3 md:hidden">
-        {righe.map((riga) => (
-          <li key={riga.iuv} className="rounded-xl bg-card p-4 ring-1 ring-foreground/10">
-            <div className="flex items-start justify-between gap-3">
-              <Debitore riga={riga} scheda={audit.get(riga.iuv)} />
-              <Stato riga={riga} />
-            </div>
-            <dl className="mt-3 grid grid-cols-2 gap-2 text-sm">
-              <Voce etichetta="Importo" valore={formatEuro(riga.importoCentesimi)} />
-              <div>
-                <dt className="text-muted-foreground">Blocchetti</dt>
-                <dd>
-                  <Blocchetti riga={riga} />
-                </dd>
+        {voci.map((voce) =>
+          voce.tipo === "singola" ? (
+            <li key={voce.id} className={cn("rounded-xl p-4 ring-1 ring-foreground/10", classeSfondoVoce(voce))}>
+              <div className="flex items-start justify-between gap-3">
+                <p className="font-medium">{voce.riga.debitore}</p>
+                <Stato stato={voce.riga.stato} />
               </div>
-              <Voce etichetta="Pagamento" valore={formatDataIt(riga.dataPagamento)} />
-              <Voce etichetta="Scadenza" valore={formatDataIt(riga.dataScadenza)} />
-              <div className="col-span-2">
-                <dt className="text-muted-foreground">IUV</dt>
-                <dd className="font-mono text-xs break-all">{riga.iuv}</dd>
+              <SchedaMobile
+                importo={voce.riga.importoCentesimi}
+                blocchetti={<Blocchetti riga={voce.riga} />}
+                pagamento={voce.riga.dataPagamento}
+                scadenza={voce.riga.dataScadenza}
+                iuv={voce.riga.iuv}
+              />
+              <div className="mt-3">{azioni(voce.riga)}</div>
+              {pendingIuv === voce.riga.iuv ? <p className="mt-2 text-xs text-muted-foreground">Aggiornamento…</p> : null}
+            </li>
+          ) : (
+            <li key={voce.id} className={cn("rounded-xl p-4 ring-1 ring-foreground/10", classeSfondoVoce(voce))}>
+              <div className="flex items-start justify-between gap-3">
+                <p className="font-medium">{voce.gruppo.debitore}</p>
+                <Stato stato={statoGruppo(voce.gruppo)} />
               </div>
-            </dl>
-            <div className="mt-3">{azioni(riga)}</div>
-            {pendingIuv === riga.iuv ? <p className="mt-2 text-xs text-muted-foreground">Aggiornamento…</p> : null}
-          </li>
-        ))}
+              <SchedaMobile
+                importo={voce.gruppo.sommaCentesimi}
+                blocchetti={<BlocchettiGruppo consegnati={voce.gruppo.consegnati} dovuti={voce.gruppo.blocchetti} />}
+                pagamento={dataPiuRecente(voce.righe.map((riga) => riga.dataPagamento))}
+                scadenza={dataPiuRecente(voce.righe.map((riga) => riga.dataScadenza))}
+                iuv={etichettaIuv(voce.righe)}
+              />
+              <div className="mt-3 flex flex-wrap gap-1">
+                <Button type="button" size="sm" variant="destructive" onClick={() => onApriGruppo(voce.id)}>
+                  Anomalia
+                </Button>
+                {azioniGruppo(voce.gruppo)}
+              </div>
+            </li>
+          ),
+        )}
       </ul>
       <Paginazione pagina={pagina} pagine={pagine} dal={dal} al={al} totale={filtrati} onPagina={onPagina} />
     </div>
   )
 }
 
-function Debitore({ riga, scheda }: { riga: RigaElenco; scheda?: SchedaRiga }) {
-  const segnala = scheda && (scheda.esito === "anomalia" || scheda.esito === "accorpato")
+function RigaGruppo({
+  voce,
+  onApri,
+  azioni,
+}: {
+  voce: Extract<VoceElenco, { tipo: "gruppo" }>
+  onApri: (id: string) => void
+  azioni: (gruppo: GruppoAudit) => ReactNode
+}) {
+  const stato = statoGruppo(voce.gruppo)
   return (
-    <div>
-      <p className="font-medium">{riga.debitore}</p>
-      {segnala ? (
-        <p className={scheda.esito === "anomalia" ? "text-xs text-destructive" : "text-xs text-muted-foreground"}>
-          {scheda.testo}
-        </p>
-      ) : null}
-    </div>
+    <TableRow className={cn("cursor-pointer", classeSfondoVoce(voce))} onClick={() => onApri(voce.id)}>
+      <TableCell className="whitespace-normal font-medium">{voce.gruppo.debitore}</TableCell>
+      <TableCell>{formatEuro(voce.gruppo.sommaCentesimi)}</TableCell>
+      <TableCell>
+        <BlocchettiGruppo consegnati={voce.gruppo.consegnati} dovuti={voce.gruppo.blocchetti} />
+      </TableCell>
+      <TableCell>{formatDataIt(dataPiuRecente(voce.righe.map((riga) => riga.dataPagamento)))}</TableCell>
+      <TableCell>{formatDataIt(dataPiuRecente(voce.righe.map((riga) => riga.dataScadenza)))}</TableCell>
+      <TableCell className="font-mono text-xs">{etichettaIuv(voce.righe)}</TableCell>
+      <TableCell>
+        <Stato stato={stato} />
+      </TableCell>
+      <TableCell onClick={(evento) => evento.stopPropagation()}>
+        <div className="flex flex-wrap gap-1">
+          <Button type="button" size="sm" variant="destructive" onClick={() => onApri(voce.id)}>
+            Anomalia
+          </Button>
+          {azioni(voce.gruppo)}
+        </div>
+      </TableCell>
+    </TableRow>
   )
 }
 
@@ -166,9 +231,48 @@ function Blocchetti({ riga }: { riga: RigaElenco }) {
   )
 }
 
-function Stato({ riga }: { riga: RigaElenco }) {
-  const variante = riga.stato === "consegnato" ? "secondary" : riga.stato === "non_pagato" ? "outline" : "default"
-  return <Badge variant={variante}>{ETICHETTA_STATO[riga.stato]}</Badge>
+function BlocchettiGruppo({ consegnati, dovuti }: { consegnati: number; dovuti: number }) {
+  if (dovuti <= 0) return <span>—</span>
+  return (
+    <span>
+      {consegnati}/{dovuti}
+    </span>
+  )
+}
+
+function Stato({ stato }: { stato: StatoPagamento }) {
+  const variante = stato === "consegnato" ? "secondary" : stato === "non_pagato" ? "outline" : "default"
+  return <Badge variant={variante}>{ETICHETTA_STATO[stato]}</Badge>
+}
+
+function SchedaMobile({
+  importo,
+  blocchetti,
+  pagamento,
+  scadenza,
+  iuv,
+}: {
+  importo: number
+  blocchetti: ReactNode
+  pagamento: string | null
+  scadenza: string | null
+  iuv: string
+}) {
+  return (
+    <dl className="mt-3 grid grid-cols-2 gap-2 text-sm">
+      <Voce etichetta="Importo" valore={formatEuro(importo)} />
+      <div>
+        <dt className="text-muted-foreground">Blocchetti</dt>
+        <dd>{blocchetti}</dd>
+      </div>
+      <Voce etichetta="Pagamento" valore={formatDataIt(pagamento)} />
+      <Voce etichetta="Scadenza" valore={formatDataIt(scadenza)} />
+      <div className="col-span-2">
+        <dt className="text-muted-foreground">IUV</dt>
+        <dd className="font-mono text-xs break-all">{iuv}</dd>
+      </div>
+    </dl>
+  )
 }
 
 function Voce({ etichetta, valore }: { etichetta: string; valore: string }) {
@@ -178,6 +282,11 @@ function Voce({ etichetta, valore }: { etichetta: string; valore: string }) {
       <dd>{valore}</dd>
     </div>
   )
+}
+
+function etichettaIuv(righe: RigaElenco[]): string {
+  if (righe.length <= 1) return righe[0]?.iuv ?? ""
+  return `${righe.length} IUV`
 }
 
 function messaggioVuoto(totale: number, filtro: FiltroElenco, ricerca: string): string {

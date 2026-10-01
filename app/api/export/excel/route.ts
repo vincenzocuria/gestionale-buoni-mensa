@@ -3,6 +3,7 @@ import { bloccaSeChiuso } from "@/lib/auth/guardia"
 import { dbPronto, messaggioDatabase } from "@/lib/db/client"
 import { creaExcel } from "@/lib/export/excel"
 import { applicaVista, righeAnno } from "@/lib/export/leggi"
+import { leggiPeriodo } from "@/lib/pagamenti/periodo"
 import { fogliExport } from "@/lib/export/tabelle"
 
 export const runtime = "nodejs"
@@ -18,7 +19,7 @@ export async function GET(request: Request) {
     const client = await dbPronto()
     const dellAnno = await righeAnno(client, anno)
     if (!dellAnno) return NextResponse.json({ errore: "Anno scolastico non valido." }, { status: 400 })
-    const elenco = applicaVista(dellAnno, url.searchParams.get("filtro"), url.searchParams.get("q") ?? "")
+    const elenco = applicaVista(dellAnno, url.searchParams.get("filtro"), url.searchParams.get("q") ?? "", leggiPeriodo(url.searchParams))
     const corpo = creaExcel(fogliExport(elenco, dellAnno))
     return new NextResponse(corpo, {
       headers: {
