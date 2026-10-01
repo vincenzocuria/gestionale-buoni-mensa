@@ -23,6 +23,7 @@ export type Pagamento = RigaSiscom & {
   tariffaRidotta: boolean
   blocchettiDovuti: number
   blocchettiConsegnati: number
+  consegneIl: string[]
 }
 
 export type StatoPagamento = "non_pagato" | "da_consegnare" | "consegnato"
@@ -37,6 +38,7 @@ export type RigaElenco = {
   tariffaRidotta: boolean
   blocchettiDovuti: number
   blocchettiConsegnati: number
+  consegneIl: string[]
   dataPagamento: string | null
   dataScadenza: string | null
   annoScolastico: string

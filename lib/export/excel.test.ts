@@ -14,6 +14,7 @@ function riga(parziale: Partial<RigaElenco> & Pick<RigaElenco, "iuv" | "importoC
     tariffaRidotta: false,
     blocchettiDovuti: 0,
     blocchettiConsegnati: 0,
+    consegneIl: [],
     dataPagamento: "2026-10-01",
     dataScadenza: "2026-10-16",
     annoScolastico: "2026/2027",

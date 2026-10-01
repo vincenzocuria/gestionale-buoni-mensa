@@ -33,6 +33,7 @@ function pagamento(parziale: Partial<Pagamento> = {}): Pagamento {
     tariffaRidotta: false,
     blocchettiDovuti: 1,
     blocchettiConsegnati: 0,
+    consegneIl: [],
     ...parziale,
   }
 }

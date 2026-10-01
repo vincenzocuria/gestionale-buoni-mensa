@@ -1,4 +1,5 @@
 import type { Row } from "@libsql/client"
+import { leggiConsegne, scriviConsegne } from "@/lib/consegna/tempi"
 import type { Pagamento } from "@/lib/pagamenti/tipi"
 
 export function daRigaDb(row: Row): Pagamento {
@@ -24,6 +25,7 @@ export function daRigaDb(row: Row): Pagamento {
     tariffaRidotta: Number(row.tariffa_ridotta) === 1,
     blocchettiDovuti: Number(row.blocchetti_dovuti),
     blocchettiConsegnati: Number(row.blocchetti_consegnati),
+    consegneIl: leggiConsegne(row.consegne_il),
   }
 }
 
@@ -50,6 +52,7 @@ export function parametriPagamento(pagamento: Pagamento): Array<string | number 
     pagamento.blocchettiDovuti,
     pagamento.blocchettiConsegnati,
     pagamento.annoScolastico,
+    scriviConsegne(pagamento.consegneIl),
   ]
 }
 

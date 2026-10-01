@@ -1,8 +1,10 @@
+import { allineaConsegne } from "@/lib/consegna/tempi"
 import type { AzioneConsegna, Pagamento } from "@/lib/pagamenti/tipi"
 
 export function applicaConsegna(
   pagamento: Pagamento,
   azione: AzioneConsegna,
+  adesso: string,
 ): { ok: true; record: Pagamento } | { ok: false; messaggio: string } {
   if (!pagamento.dataPagamento) {
     return { ok: false, messaggio: "Il bollettino non è pagato: la consegna non è disponibile." }
@@ -14,7 +16,11 @@ export function applicaConsegna(
     }
     return {
       ok: true,
-      record: { ...pagamento, blocchettiConsegnati: pagamento.blocchettiDovuti },
+      record: {
+        ...pagamento,
+        blocchettiConsegnati: pagamento.blocchettiDovuti,
+        consegneIl: allineaConsegne(pagamento.consegneIl, pagamento.blocchettiDovuti, adesso),
+      },
     }
   }
 
@@ -33,6 +39,7 @@ export function applicaConsegna(
       record: {
         ...pagamento,
         blocchettiConsegnati: pagamento.blocchettiConsegnati + 1,
+        consegneIl: allineaConsegne(pagamento.consegneIl, pagamento.blocchettiConsegnati + 1, adesso),
       },
     }
   }
@@ -43,6 +50,6 @@ export function applicaConsegna(
 
   return {
     ok: true,
-    record: { ...pagamento, blocchettiConsegnati: 0 },
+    record: { ...pagamento, blocchettiConsegnati: 0, consegneIl: [] },
   }
 }

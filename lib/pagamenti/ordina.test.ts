@@ -15,6 +15,7 @@ function riga(parziale: Partial<RigaElenco> & Pick<RigaElenco, "iuv" | "debitore
     tariffaRidotta: false,
     blocchettiDovuti: 1,
     blocchettiConsegnati: 0,
+    consegneIl: [],
     dataPagamento: parziale.dataPagamento === undefined ? "2026-10-01" : parziale.dataPagamento,
     dataScadenza: parziale.dataScadenza ?? "2026-10-15",
     annoScolastico: "2026/2027",

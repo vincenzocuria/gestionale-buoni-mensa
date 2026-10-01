@@ -1,6 +1,8 @@
+import { allineaConsegne } from "@/lib/consegna/tempi"
 import { formatEuro } from "@/lib/format/euro"
 import { CENTESIMI_BLOCCHETTO, eImportoBlocchetto, numeroBlocchetti } from "@/lib/blocchetti/tariffa"
 import type { AnalisiAudit, EsitoAuditRiga, GruppoAudit, RigaAudit } from "@/lib/audit/tipi"
+import { chiavePersonaAnno } from "@/lib/pagamenti/persona"
 
 export function analizzaBlocchetti(righe: RigaAudit[]): AnalisiAudit {
   const perIuv = new Map<string, { esito: EsitoAuditRiga; testo: string; gruppoId: string | null }>()
@@ -43,17 +45,22 @@ export function analizzaBlocchetti(righe: RigaAudit[]): AnalisiAudit {
 export function pianoConsegnaGruppo(
   gruppo: GruppoAudit,
   azione: "completa" | "parziale" | "annulla",
-): { iuv: string; consegnati: number }[] {
+  adesso: string,
+): { iuv: string; consegnati: number; consegneIl: string[] }[] {
   const n = gruppo.blocchetti
   const usato = Math.min(n, gruppo.pagamenti.reduce((somma, riga) => somma + riga.blocchettiConsegnati, 0))
   let prossimo = usato
   if (azione === "completa") prossimo = n
   else if (azione === "annulla") prossimo = 0
   else prossimo = Math.min(n, usato + 1)
-  return gruppo.pagamenti.map((pagamento, indice) => ({
-    iuv: pagamento.iuv,
-    consegnati: indice === 0 ? prossimo : 0,
-  }))
+  return gruppo.pagamenti.map((pagamento, indice) => {
+    const consegnati = indice === 0 ? prossimo : 0
+    return {
+      iuv: pagamento.iuv,
+      consegnati,
+      consegneIl: allineaConsegne(indice === 0 ? (pagamento.consegneIl ?? []) : [], consegnati, adesso),
+    }
+  })
 }
 
 function classifica(voci: RigaAudit[]): GruppoAudit[] {
@@ -120,7 +127,5 @@ function gruppo(pagamenti: RigaAudit[], esito: "accorpato" | "anomalia"): Gruppo
 }
 
 function chiave(riga: RigaAudit): string {
-  const fiscale = riga.codiceFiscale.trim().toUpperCase()
-  const persona = fiscale || `deb:${riga.debitore.trim().toUpperCase()}`
-  return `${riga.annoScolastico}|${persona}`
+  return chiavePersonaAnno(riga)
 }

@@ -53,9 +53,9 @@ test("il merge su sqlite non cancella, non azzera consegna e non pulisce la data
 
     const bianchi = await leggiPerIuv(client, "200")
     assert.ok(bianchi)
-    const passo = applicaConsegna(bianchi, "parziale")
+    const passo = applicaConsegna(bianchi, "parziale", "2026-10-01T11:30:00")
     assert.equal(passo.ok, true)
-    if (passo.ok) await salvaConsegna(client, "200", passo.record.blocchettiConsegnati)
+    if (passo.ok) await salvaConsegna(client, "200", passo.record.blocchettiConsegnati, passo.record.consegneIl)
 
     const dopo = await eseguiImport(
       client,
@@ -71,8 +71,8 @@ test("il merge su sqlite non cancella, non azzera consegna e non pulisce la data
     assert.equal(ancora?.pspRiferimento, "PSP-B")
     assert.ok(await leggiPerIuv(client, "100"))
 
-    const chiuso = applicaConsegna(ancora!, "completa")
-    if (chiuso.ok) await salvaConsegna(client, "200", chiuso.record.blocchettiConsegnati)
+    const chiuso = applicaConsegna(ancora!, "completa", "2026-10-02T16:05:00")
+    if (chiuso.ok) await salvaConsegna(client, "200", chiuso.record.blocchettiConsegnati, chiuso.record.consegneIl)
     const ignorato = await eseguiImport(
       client,
       csv([

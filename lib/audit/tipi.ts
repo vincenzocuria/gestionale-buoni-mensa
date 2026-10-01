@@ -8,6 +8,7 @@ export type RigaAudit = {
   nome: string
   annoScolastico: string
   blocchettiConsegnati: number
+  consegneIl?: string[]
 }
 
 export type EsitoAuditRiga = "valido" | "accorpato" | "anomalia" | "non_pagato"

@@ -79,9 +79,9 @@ test("la consegna del gruppo segna i blocchetti una sola volta", () => {
     riga({ iuv: "10", importoCentesimi: 2000 }),
     riga({ iuv: "11", importoCentesimi: 2000 }),
   ])
-  const piano = pianoConsegnaGruppo(analisi.gruppi[0], "completa")
+  const piano = pianoConsegnaGruppo(analisi.gruppi[0], "completa", "2026-10-01T11:30:00")
   assert.deepEqual(piano, [
-    { iuv: "10", consegnati: 1 },
-    { iuv: "11", consegnati: 0 },
+    { iuv: "10", consegnati: 1, consegneIl: ["2026-10-01T11:30:00"] },
+    { iuv: "11", consegnati: 0, consegneIl: [] },
   ])
 })

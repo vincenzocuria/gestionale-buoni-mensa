@@ -1,5 +1,6 @@
 import { analizzaBlocchetti } from "@/lib/audit/gruppi"
 import type { AnalisiAudit } from "@/lib/audit/tipi"
+import { testoConsegne } from "@/lib/consegna/tempi"
 import { formatDataIt } from "@/lib/format/data-it"
 import { formatEuro } from "@/lib/format/euro"
 import type { RigaElenco } from "@/lib/pagamenti/tipi"
@@ -30,6 +31,7 @@ function foglioElenco(elenco: RigaElenco[], analisi: AnalisiAudit): Foglio {
       "Scadenza",
       "IUV",
       "Stato",
+      "Consegna",
       "Audit",
     ],
     righe: elenco.map((riga) => {
@@ -45,6 +47,7 @@ function foglioElenco(elenco: RigaElenco[], analisi: AnalisiAudit): Foglio {
         formatDataIt(riga.dataScadenza),
         riga.iuv,
         ETICHETTA_STATO[riga.stato],
+        testoConsegne(riga.consegneIl),
         esito?.testo || esito?.esito || "",
       ]
     }),

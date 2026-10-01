@@ -15,6 +15,7 @@ function voce(iuv: string, pagamento: string | null, scadenza = "2026-10-15"): V
     tariffaRidotta: false,
     blocchettiDovuti: 1,
     blocchettiConsegnati: 0,
+    consegneIl: [],
     dataPagamento: pagamento,
     dataScadenza: scadenza,
     annoScolastico: "2026/2027",

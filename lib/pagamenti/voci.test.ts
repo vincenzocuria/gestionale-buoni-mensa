@@ -29,6 +29,7 @@ function elenco(base: RigaAudit, extra: Partial<RigaElenco> = {}): RigaElenco {
     tariffaRidotta: false,
     blocchettiDovuti: base.importoCentesimi === 4000 ? 1 : 0,
     blocchettiConsegnati: base.blocchettiConsegnati,
+    consegneIl: [],
     dataPagamento: base.dataPagamento,
     dataScadenza: "2026-10-15",
     annoScolastico: base.annoScolastico,

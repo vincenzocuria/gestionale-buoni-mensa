@@ -26,27 +26,35 @@ function base(parziale: Partial<Pagamento> = {}): Pagamento {
     tariffaRidotta: false,
     blocchettiDovuti: 2,
     blocchettiConsegnati: 0,
+    consegneIl: [],
     ...parziale,
   }
 }
 
+const ORA = "2026-10-01T11:30:00"
+
 test("Consegnato chiude i residui e Annulla non tocca il pagamento", () => {
-  const chiuso = applicaConsegna(base(), "completa")
+  const chiuso = applicaConsegna(base(), "completa", ORA)
   assert.equal(chiuso.ok && chiuso.record.blocchettiConsegnati, 2)
+  assert.deepEqual(chiuso.ok && chiuso.record.consegneIl, [ORA, ORA])
   assert.equal(chiuso.ok && chiuso.record.dataPagamento, "2026-10-01")
-  const annullo = applicaConsegna(chiuso.ok ? chiuso.record : base(), "annulla")
+  const annullo = applicaConsegna(chiuso.ok ? chiuso.record : base(), "annulla", "2026-10-02T08:00:00")
   assert.equal(annullo.ok && annullo.record.blocchettiConsegnati, 0)
+  assert.deepEqual(annullo.ok && annullo.record.consegneIl, [])
   assert.equal(annullo.ok && annullo.record.dataPagamento, "2026-10-01")
 })
 
 test("+1 solo sui pagamenti da due blocchetti", () => {
-  const passo = applicaConsegna(base(), "parziale")
+  const passo = applicaConsegna(base(), "parziale", ORA)
   assert.equal(passo.ok && passo.record.blocchettiConsegnati, 1)
-  const singolo = applicaConsegna(base({ importoCentesimi: 4000, blocchettiDovuti: 1 }), "parziale")
+  assert.deepEqual(passo.ok && passo.record.consegneIl, [ORA])
+  const secondo = applicaConsegna(passo.ok ? passo.record : base(), "parziale", "2026-10-02T16:05:00")
+  assert.deepEqual(secondo.ok && secondo.record.consegneIl, [ORA, "2026-10-02T16:05:00"])
+  const singolo = applicaConsegna(base({ importoCentesimi: 4000, blocchettiDovuti: 1 }), "parziale", ORA)
   assert.equal(singolo.ok, false)
 })
 
 test("non consegna un bollettino non pagato", () => {
-  const esito = applicaConsegna(base({ dataPagamento: null }), "completa")
+  const esito = applicaConsegna(base({ dataPagamento: null }), "completa", ORA)
   assert.equal(esito.ok, false)
 })

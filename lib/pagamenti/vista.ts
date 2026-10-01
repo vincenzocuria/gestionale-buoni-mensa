@@ -12,6 +12,7 @@ export function aVista(pagamento: Pagamento): RigaElenco {
     tariffaRidotta: pagamento.tariffaRidotta,
     blocchettiDovuti: pagamento.blocchettiDovuti,
     blocchettiConsegnati: pagamento.blocchettiConsegnati,
+    consegneIl: pagamento.consegneIl,
     dataPagamento: pagamento.dataPagamento,
     dataScadenza: pagamento.dataScadenza,
     annoScolastico: pagamento.annoScolastico,

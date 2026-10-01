@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { analizzaBlocchetti, pianoConsegnaGruppo } from "@/lib/audit/gruppi"
+import { adessoLocale } from "@/lib/consegna/tempi"
 import { bloccaSeChiuso } from "@/lib/auth/guardia"
 import { dbPronto, messaggioDatabase } from "@/lib/db/client"
 import { leggiTutti, salvaConsegna } from "@/lib/db/pagamenti"
@@ -28,10 +29,10 @@ export async function POST(request: Request) {
     const gruppo = analizzaBlocchetti(viste).gruppi.find((voce) => voce.id === id && voce.esito === "accorpato")
     if (!gruppo) return NextResponse.json({ errore: "Accorpamento non trovato." }, { status: 404 })
 
-    const piano = pianoConsegnaGruppo(gruppo, azione)
+    const piano = pianoConsegnaGruppo(gruppo, azione, adessoLocale())
     const transazione = await client.transaction("write")
     try {
-      for (const voce of piano) await salvaConsegna(transazione, voce.iuv, voce.consegnati)
+      for (const voce of piano) await salvaConsegna(transazione, voce.iuv, voce.consegnati, voce.consegneIl)
       await transazione.commit()
     } catch (errore) {
       await transazione.rollback()

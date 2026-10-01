@@ -36,6 +36,7 @@ function nuovoPagamento(riga: RigaSiscom): Pagamento {
     tariffaRidotta: blocchetti.tariffaRidotta,
     blocchettiDovuti: blocchetti.dovuti,
     blocchettiConsegnati: 0,
+    consegneIl: [],
   }
 }
 
@@ -48,6 +49,7 @@ function aggiornaAperto(esistente: Pagamento, riga: RigaSiscom): Pagamento {
     tariffaRidotta: blocchetti.tariffaRidotta,
     blocchettiDovuti: blocchetti.dovuti,
     blocchettiConsegnati: esistente.blocchettiConsegnati,
+    consegneIl: esistente.consegneIl,
   }
 }
 
@@ -96,6 +98,7 @@ function uguale(a: Pagamento, b: Pagamento): boolean {
     a.annoScolastico === b.annoScolastico &&
     a.tariffaRidotta === b.tariffaRidotta &&
     a.blocchettiDovuti === b.blocchettiDovuti &&
-    a.blocchettiConsegnati === b.blocchettiConsegnati
+    a.blocchettiConsegnati === b.blocchettiConsegnati &&
+    a.consegneIl.join("\n") === b.consegneIl.join("\n")
   )
 }

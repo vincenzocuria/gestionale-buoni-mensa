@@ -20,7 +20,8 @@ CREATE TABLE IF NOT EXISTS pagamenti (
   tariffa_ridotta INTEGER NOT NULL DEFAULT 0,
   blocchetti_dovuti INTEGER NOT NULL,
   blocchetti_consegnati INTEGER NOT NULL DEFAULT 0,
-  anno_scolastico TEXT NOT NULL DEFAULT ''
+  anno_scolastico TEXT NOT NULL DEFAULT '',
+  consegne_il TEXT NOT NULL DEFAULT '[]'
 );
 CREATE INDEX IF NOT EXISTS idx_pagamenti_cf ON pagamenti (codice_fiscale);
 `

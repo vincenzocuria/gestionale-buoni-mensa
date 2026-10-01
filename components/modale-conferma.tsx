@@ -1,7 +1,7 @@
 "use client"
 
-import { useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
+import { DialogModale } from "@/components/dialog-modale"
 
 export function ModaleConferma({
   titolo,
@@ -16,24 +16,8 @@ export function ModaleConferma({
   onConferma: () => void
   onChiudi: () => void
 }) {
-  const dialog = useRef<HTMLDialogElement>(null)
-
-  useEffect(() => {
-    const nodo = dialog.current
-    if (!nodo || nodo.open) return
-    nodo.showModal()
-  }, [])
-
   return (
-    <dialog
-      ref={dialog}
-      className="w-[min(28rem,calc(100%-2rem))] rounded-xl border border-border bg-popover p-0 text-popover-foreground shadow-lg backdrop:bg-black/40"
-      onClose={onChiudi}
-      onClick={(evento) => {
-        evento.stopPropagation()
-        if (evento.target === evento.currentTarget) onChiudi()
-      }}
-    >
+    <DialogModale className="w-[min(28rem,calc(100%-2rem))]" onChiudi={onChiudi}>
       <div className="px-4 py-3">
         <h2 className="font-medium">{titolo}</h2>
         <p className="mt-2 text-sm">{testo}</p>
@@ -46,6 +30,6 @@ export function ModaleConferma({
           Conferma
         </Button>
       </div>
-    </dialog>
+    </DialogModale>
   )
 }

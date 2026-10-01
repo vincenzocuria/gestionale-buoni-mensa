@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { bloccaSeChiuso } from "@/lib/auth/guardia"
 import { applicaConsegna } from "@/lib/consegna/applica"
+import { adessoLocale } from "@/lib/consegna/tempi"
 import { dbPronto, messaggioDatabase } from "@/lib/db/client"
 import { leggiPerIuv, salvaConsegna } from "@/lib/db/pagamenti"
 import type { AzioneConsegna } from "@/lib/pagamenti/tipi"
@@ -33,12 +34,12 @@ export async function POST(
       return NextResponse.json({ errore: "Bollettino non trovato." }, { status: 404 })
     }
 
-    const esito = applicaConsegna(pagamento, azione)
+    const esito = applicaConsegna(pagamento, azione, adessoLocale())
     if (!esito.ok) {
       return NextResponse.json({ errore: esito.messaggio }, { status: 409 })
     }
 
-    await salvaConsegna(client, iuv, esito.record.blocchettiConsegnati)
+    await salvaConsegna(client, iuv, esito.record.blocchettiConsegnati, esito.record.consegneIl)
     return NextResponse.json({ riga: aVista(esito.record) })
   } catch (errore) {
     const messaggio = messaggioDatabase(errore)

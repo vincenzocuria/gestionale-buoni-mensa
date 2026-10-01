@@ -2,6 +2,7 @@ import fs from "node:fs"
 import path from "node:path"
 import { createClient, type Client } from "@libsql/client"
 import { assicuraAnnoScolastico } from "@/lib/db/assicura-anno-scolastico"
+import { assicuraConsegne } from "@/lib/db/assicura-consegne"
 import { SCHEMA_SQL } from "@/lib/db/schema"
 import { importaSeVuoto } from "@/lib/seed/importa-se-vuoto"
 
@@ -47,6 +48,7 @@ export function getClient(): Client {
 export async function dbPronto(): Promise<Client> {
   const client = getClient()
   await globale.mensaPronto
+  await assicuraConsegne(client)
   return client
 }
 
@@ -64,5 +66,6 @@ async function prepara(client: Client, locale: boolean): Promise<void> {
   }
   await client.executeMultiple(SCHEMA_SQL)
   await assicuraAnnoScolastico(client)
+  await assicuraConsegne(client)
   if (locale) await importaSeVuoto(client)
 }

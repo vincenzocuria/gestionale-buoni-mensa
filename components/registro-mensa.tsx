@@ -9,7 +9,7 @@ import { BarraStrumenti } from "@/components/barra-strumenti"
 import { ElencoPagamenti } from "@/components/elenco-pagamenti"
 import { FiltroPeriodo } from "@/components/filtro-periodo"
 import { MarchioComune } from "@/components/marchio-comune"
-import { ModaleGruppo } from "@/components/modale-gruppo"
+import { ModalePersona } from "@/components/modale-persona"
 import { RiepilogoImport } from "@/components/riepilogo-import"
 import { SelettoreAnno } from "@/components/selettore-anno"
 import { StrisciaKpi } from "@/components/striscia-kpi"
@@ -20,6 +20,7 @@ import { calcolaKpi } from "@/lib/pagamenti/kpi"
 import { filtraPeriodo, oggiLocale, PERIODO_VUOTO, type Periodo } from "@/lib/pagamenti/periodo"
 import { alternaOrdine, ordinaVoci, type OrdineElenco } from "@/lib/pagamenti/ordina"
 import { slicePagina } from "@/lib/pagamenti/pagina"
+import { schedaPersona } from "@/lib/pagamenti/persona"
 import { compattaElenco, contaFiltri, filtraVoci } from "@/lib/pagamenti/voci"
 import type { FiltroElenco, Kpi, RigaElenco, RiepilogoImport as Riepilogo } from "@/lib/pagamenti/tipi"
 
@@ -41,7 +42,7 @@ export function RegistroMensa() {
   const [pagina, setPagina] = useState(1)
   const [ordine, setOrdine] = useState<OrdineElenco | null>(null)
   const [pendingGruppo, setPendingGruppo] = useState<string | null>(null)
-  const [gruppoAperto, setGruppoAperto] = useState<string | null>(null)
+  const [personaAperta, setPersonaAperta] = useState<string | null>(null)
   const [riepilogo, setRiepilogo] = useState<Riepilogo | null>(null)
   const [erroreImport, setErroreImport] = useState<string | null>(null)
   const [importando, setImportando] = useState(false)
@@ -89,12 +90,10 @@ export function RegistroMensa() {
   const ordinate = useMemo(() => ordinaVoci(visibili, ordine), [visibili, ordine])
   const conteggi = useMemo(() => contaFiltri(nelPeriodo, ricerca), [nelPeriodo, ricerca])
   const paginati = useMemo(() => slicePagina(ordinate, pagina), [ordinate, pagina])
-  const dettaglio = analisi.gruppi.find((gruppo) => gruppo.id === gruppoAperto) ?? null
-  const righeDettaglio = dettaglio
-    ? dettaglio.pagamenti
-        .map((pagamento) => delAnno.find((riga) => riga.iuv === pagamento.iuv))
-        .filter((riga): riga is RigaElenco => riga != null)
-    : []
+  const scheda = useMemo(
+    () => (personaAperta ? schedaPersona(delAnno, analisi, personaAperta) : null),
+    [personaAperta, delAnno, analisi],
+  )
 
   async function importa(file: File) {
     setImportando(true)
@@ -175,7 +174,7 @@ export function RegistroMensa() {
         <MarchioComune>
           <h1 className="mt-1 font-serif text-4xl tracking-tight">Buoni mensa</h1>
           <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-            Consegne dei blocchetti. Un nuovo export Siscom aggiorna solo i bollettini ancora aperti.
+            Consegne dei blocchetti dell&apos;anno selezionato. Clicca un genitore per lo storico. Un nuovo export Siscom aggiorna solo i bollettini ancora aperti.
           </p>
         </MarchioComune>
         <form action={esci}>
@@ -192,6 +191,7 @@ export function RegistroMensa() {
             attivo={annoAttivo}
             onCambio={(scelto) => {
               setAnno(scelto)
+              setPersonaAperta(null)
               setPeriodo(PERIODO_VUOTO)
               setPagina(1)
             }}
@@ -253,7 +253,7 @@ export function RegistroMensa() {
             setCaricamento(true)
             setTentativo((n) => n + 1)
           }}
-          onApriGruppo={setGruppoAperto}
+          onApriPersona={setPersonaAperta}
           azioniGruppo={(gruppo) => (
             <AzioniConsegnaGruppo
               gruppo={gruppo}
@@ -274,13 +274,24 @@ export function RegistroMensa() {
             setPagina(1)
           }}
         />
-        {dettaglio ? (
-          <ModaleGruppo
-            gruppo={dettaglio}
-            righe={righeDettaglio}
-            pending={pendingGruppo === dettaglio.id}
-            onChiudi={() => setGruppoAperto(null)}
-            onConsegna={(azione) => consegnaGruppo(dettaglio.id, azione)}
+        {scheda ? (
+          <ModalePersona
+            scheda={scheda}
+            onChiudi={() => setPersonaAperta(null)}
+            azioniGruppo={(gruppo) => (
+              <AzioniConsegnaGruppo
+                gruppo={gruppo}
+                pending={pendingGruppo === gruppo.id}
+                onConsegna={(azione) => consegnaGruppo(gruppo.id, azione)}
+              />
+            )}
+            azioni={(riga) => (
+              <AzioniConsegna
+                riga={riga}
+                pending={pendingIuv === riga.iuv}
+                onAzione={(azione) => consegna(riga.iuv, azione)}
+              />
+            )}
           />
         ) : null}
       </div>
