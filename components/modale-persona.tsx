@@ -6,18 +6,19 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { formatDataIt } from "@/lib/format/data-it"
 import { formatEuro } from "@/lib/format/euro"
+import type { StoricoPersona } from "@/lib/pagamenti/storico"
 import type { SchedaPersona } from "@/lib/pagamenti/persona"
 import type { GruppoAudit } from "@/lib/audit/tipi"
 import type { RigaElenco } from "@/lib/pagamenti/tipi"
 import { dataPiuRecente, statoGruppo, type VoceElenco } from "@/lib/pagamenti/voci"
 
 export function ModalePersona({
-  scheda,
+  storico,
   onChiudi,
   azioni,
   azioniGruppo,
 }: {
-  scheda: SchedaPersona
+  storico: StoricoPersona
   onChiudi: () => void
   azioni: (riga: RigaElenco) => ReactNode
   azioniGruppo: (gruppo: GruppoAudit) => ReactNode
@@ -26,9 +27,9 @@ export function ModalePersona({
     <DialogModale className="w-[min(44rem,calc(100%-2rem))]" onChiudi={onChiudi}>
       <div className="flex items-start justify-between gap-3 border-b border-border px-4 py-3">
         <div>
-          <h2 className="font-medium">{scheda.debitore}</h2>
+          <h2 className="font-medium">{storico.debitore}</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            {scheda.codiceFiscale || "Senza codice fiscale"} · anno {scheda.annoScolastico}
+            {storico.codiceFiscale || "Senza codice fiscale"} · {storico.anni.length === 1 ? "1 anno" : `${storico.anni.length} anni`}
           </p>
         </div>
         <Button type="button" variant="outline" size="sm" onClick={onChiudi}>
@@ -36,28 +37,69 @@ export function ModalePersona({
         </Button>
       </div>
       <div className="max-h-[70vh] overflow-auto px-4 py-3">
-        <p className="text-sm">
-          {scheda.consegnati}/{scheda.dovuti} blocchetti consegnati
-          {scheda.daConsegnare > 0 ? ` · ${scheda.daConsegnare} da consegnare` : ""}
-        </p>
-        {scheda.voci.length > 1 ? (
-          <p className="mt-1 text-sm text-muted-foreground">
-            Ogni pagamento resta distinto: un acquisto nuovo compare qui come bollettino ancora da consegnare.
-          </p>
-        ) : null}
-        <ul className="mt-3 flex flex-col gap-3">
-          {scheda.voci.map((voce) => (
-            <li key={voce.id} className="rounded-xl p-3 ring-1 ring-foreground/10">
-              {voce.tipo === "singola" ? (
-                <PagamentoSingolo voce={voce} azioni={azioni} />
-              ) : (
-                <PagamentoGruppo voce={voce} azioni={azioniGruppo} />
-              )}
+        <StoricoConsegne consegne={storico.consegne} />
+        <div className="mt-4 flex flex-col gap-5">
+          {storico.anni.map((scheda) => (
+            <AnnoScheda key={scheda.annoScolastico} scheda={scheda} azioni={azioni} azioniGruppo={azioniGruppo} />
+          ))}
+        </div>
+      </div>
+    </DialogModale>
+  )
+}
+
+function StoricoConsegne({ consegne }: { consegne: StoricoPersona["consegne"] }) {
+  return (
+    <section>
+      <h3 className="text-sm font-medium">Storico consegne</h3>
+      {consegne.length === 0 ? (
+        <p className="mt-1 text-sm text-muted-foreground">Nessun orario di consegna registrato.</p>
+      ) : (
+        <ul className="mt-2 flex flex-col gap-1 text-sm">
+          {consegne.map((voce, indice) => (
+            <li key={`${voce.iuv}-${voce.quando}-${indice}`}>
+              {formatDataIt(voce.quando)} · anno {voce.annoScolastico} · IUV {voce.iuv}
             </li>
           ))}
         </ul>
-      </div>
-    </DialogModale>
+      )}
+    </section>
+  )
+}
+
+function AnnoScheda({
+  scheda,
+  azioni,
+  azioniGruppo,
+}: {
+  scheda: SchedaPersona
+  azioni: (riga: RigaElenco) => ReactNode
+  azioniGruppo: (gruppo: GruppoAudit) => ReactNode
+}) {
+  return (
+    <section>
+      <h3 className="text-sm font-medium">Anno {scheda.annoScolastico}</h3>
+      <p className="mt-1 text-sm">
+        {scheda.consegnati}/{scheda.dovuti} blocchetti consegnati
+        {scheda.daConsegnare > 0 ? ` · ${scheda.daConsegnare} da consegnare` : ""}
+      </p>
+      {scheda.voci.length > 1 ? (
+        <p className="mt-1 text-sm text-muted-foreground">
+          Ogni pagamento resta distinto: un acquisto nuovo compare qui come bollettino ancora da consegnare.
+        </p>
+      ) : null}
+      <ul className="mt-3 flex flex-col gap-3">
+        {scheda.voci.map((voce) => (
+          <li key={voce.id} className="rounded-xl p-3 ring-1 ring-foreground/10">
+            {voce.tipo === "singola" ? (
+              <PagamentoSingolo voce={voce} azioni={azioni} />
+            ) : (
+              <PagamentoGruppo voce={voce} azioni={azioniGruppo} />
+            )}
+          </li>
+        ))}
+      </ul>
+    </section>
   )
 }
 

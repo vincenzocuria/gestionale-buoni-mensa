@@ -20,9 +20,9 @@ import { calcolaKpi } from "@/lib/pagamenti/kpi"
 import { filtraPeriodo, oggiLocale, PERIODO_VUOTO, type Periodo } from "@/lib/pagamenti/periodo"
 import { alternaOrdine, ordinaVoci, type OrdineElenco } from "@/lib/pagamenti/ordina"
 import { slicePagina } from "@/lib/pagamenti/pagina"
-import { schedaPersona } from "@/lib/pagamenti/persona"
+import { storicoPersona } from "@/lib/pagamenti/storico"
 import { compattaElenco, contaFiltri, filtraVoci } from "@/lib/pagamenti/voci"
-import type { FiltroElenco, Kpi, RigaElenco, RiepilogoImport as Riepilogo } from "@/lib/pagamenti/tipi"
+import type { AzioneConsegna, DettaglioConsegna, FiltroElenco, Kpi, RigaElenco, RiepilogoImport as Riepilogo } from "@/lib/pagamenti/tipi"
 
 type Carico = {
   righe: RigaElenco[]
@@ -90,9 +90,9 @@ export function RegistroMensa() {
   const ordinate = useMemo(() => ordinaVoci(visibili, ordine), [visibili, ordine])
   const conteggi = useMemo(() => contaFiltri(nelPeriodo, ricerca), [nelPeriodo, ricerca])
   const paginati = useMemo(() => slicePagina(ordinate, pagina), [ordinate, pagina])
-  const scheda = useMemo(
-    () => (personaAperta ? schedaPersona(delAnno, analisi, personaAperta) : null),
-    [personaAperta, delAnno, analisi],
+  const storico = useMemo(
+    () => (personaAperta && carico ? storicoPersona(carico.righe, personaAperta) : null),
+    [personaAperta, carico],
   )
 
   async function importa(file: File) {
@@ -117,14 +117,14 @@ export function RegistroMensa() {
     }
   }
 
-  async function consegna(iuv: string, azione: "completa" | "parziale" | "annulla") {
+  async function consegna(iuv: string, azione: AzioneConsegna, dettaglio?: DettaglioConsegna) {
     setPendingIuv(iuv)
     setErroreAzione(null)
     try {
       const risposta = await fetch(`/api/pagamenti/${encodeURIComponent(iuv)}/consegna`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ azione }),
+        body: JSON.stringify({ azione, ...dettaglio }),
       })
       const corpo = await risposta.json().catch(() => null)
       if (!risposta.ok) {
@@ -145,14 +145,14 @@ export function RegistroMensa() {
     }
   }
 
-  async function consegnaGruppo(id: string, azione: "completa" | "parziale" | "annulla") {
+  async function consegnaGruppo(id: string, azione: AzioneConsegna, dettaglio?: DettaglioConsegna) {
     setPendingGruppo(id)
     setErroreAzione(null)
     try {
       const risposta = await fetch("/api/audit/consegna", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ id, azione }),
+        body: JSON.stringify({ id, azione, ...dettaglio }),
       })
       const corpo = await risposta.json().catch(() => null)
       if (!risposta.ok) {
@@ -258,14 +258,14 @@ export function RegistroMensa() {
             <AzioniConsegnaGruppo
               gruppo={gruppo}
               pending={pendingGruppo === gruppo.id}
-              onConsegna={(azione) => consegnaGruppo(gruppo.id, azione)}
+              onConsegna={(azione, dettaglio) => consegnaGruppo(gruppo.id, azione, dettaglio)}
             />
           )}
           azioni={(riga) => (
             <AzioniConsegna
               riga={riga}
               pending={pendingIuv === riga.iuv}
-              onAzione={(azione) => consegna(riga.iuv, azione)}
+              onAzione={(azione, dettaglio) => consegna(riga.iuv, azione, dettaglio)}
             />
           )}
           ordine={ordine}
@@ -274,22 +274,22 @@ export function RegistroMensa() {
             setPagina(1)
           }}
         />
-        {scheda ? (
+        {storico ? (
           <ModalePersona
-            scheda={scheda}
+            storico={storico}
             onChiudi={() => setPersonaAperta(null)}
             azioniGruppo={(gruppo) => (
               <AzioniConsegnaGruppo
                 gruppo={gruppo}
                 pending={pendingGruppo === gruppo.id}
-                onConsegna={(azione) => consegnaGruppo(gruppo.id, azione)}
+                onConsegna={(azione, dettaglio) => consegnaGruppo(gruppo.id, azione, dettaglio)}
               />
             )}
             azioni={(riga) => (
               <AzioniConsegna
                 riga={riga}
                 pending={pendingIuv === riga.iuv}
-                onAzione={(azione) => consegna(riga.iuv, azione)}
+                onAzione={(azione, dettaglio) => consegna(riga.iuv, azione, dettaglio)}
               />
             )}
           />

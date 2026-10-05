@@ -1,16 +1,15 @@
 import { NextResponse } from "next/server"
 import { bloccaSeChiuso } from "@/lib/auth/guardia"
 import { applicaConsegna } from "@/lib/consegna/applica"
+import { applicaOrario } from "@/lib/consegna/modifica"
+import { leggiCorpoConsegna } from "@/lib/consegna/richiesta"
 import { adessoLocale } from "@/lib/consegna/tempi"
 import { dbPronto, messaggioDatabase } from "@/lib/db/client"
 import { leggiPerIuv, salvaConsegna } from "@/lib/db/pagamenti"
-import type { AzioneConsegna } from "@/lib/pagamenti/tipi"
 import { aVista } from "@/lib/pagamenti/vista"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
-
-const AZIONI: AzioneConsegna[] = ["completa", "parziale", "annulla"]
 
 export async function POST(
   request: Request,
@@ -21,9 +20,8 @@ export async function POST(
 
   const { iuv: iuvGrezzo } = await contesto.params
   const iuv = decodeURIComponent(iuvGrezzo)
-  const corpo = await request.json().catch(() => null)
-  const azione = corpo && typeof corpo === "object" ? corpo.azione : null
-  if (!eAzione(azione)) {
+  const letto = leggiCorpoConsegna(await request.json().catch(() => null))
+  if (!letto) {
     return NextResponse.json({ errore: "Azione non riconosciuta." }, { status: 400 })
   }
 
@@ -34,7 +32,10 @@ export async function POST(
       return NextResponse.json({ errore: "Bollettino non trovato." }, { status: 404 })
     }
 
-    const esito = applicaConsegna(pagamento, azione, adessoLocale())
+    const esito =
+      letto.azione === "modifica" || letto.azione === "rimuovi" || letto.azione === "registra"
+        ? applicaOrario(pagamento, letto.azione, letto.indice, letto.quando)
+        : applicaConsegna(pagamento, letto.azione, adessoLocale())
     if (!esito.ok) {
       return NextResponse.json({ errore: esito.messaggio }, { status: 409 })
     }
@@ -47,8 +48,4 @@ export async function POST(
     console.error("Consegna non riuscita", errore instanceof Error ? errore.name : "")
     return NextResponse.json({ errore: "Consegna non riuscita." }, { status: 500 })
   }
-}
-
-function eAzione(valore: unknown): valore is AzioneConsegna {
-  return typeof valore === "string" && AZIONI.includes(valore as AzioneConsegna)
 }

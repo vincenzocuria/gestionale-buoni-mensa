@@ -1,9 +1,9 @@
 import { allineaConsegne } from "@/lib/consegna/tempi"
-import type { AzioneConsegna, Pagamento } from "@/lib/pagamenti/tipi"
+import type { Pagamento } from "@/lib/pagamenti/tipi"
 
 export function applicaConsegna(
   pagamento: Pagamento,
-  azione: AzioneConsegna,
+  azione: "completa" | "parziale" | "annulla",
   adesso: string,
 ): { ok: true; record: Pagamento } | { ok: false; messaggio: string } {
   if (!pagamento.dataPagamento) {

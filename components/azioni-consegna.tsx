@@ -2,9 +2,10 @@
 
 import { useState } from "react"
 import { ModaleConferma } from "@/components/modale-conferma"
+import { ModificaConsegna } from "@/components/modifica-consegna"
 import { Button } from "@/components/ui/button"
-import { testoConfermaConsegna } from "@/lib/consegna/testo-conferma"
-import type { AzioneConsegna, RigaElenco } from "@/lib/pagamenti/tipi"
+import { testoConfermaAnnulla, testoConfermaConsegna } from "@/lib/consegna/testo-conferma"
+import type { AzioneConsegna, DettaglioConsegna, RigaElenco } from "@/lib/pagamenti/tipi"
 
 export function AzioniConsegna({
   riga,
@@ -14,10 +15,11 @@ export function AzioniConsegna({
 }: {
   riga: RigaElenco
   pending: boolean
-  onAzione: (azione: AzioneConsegna) => void
+  onAzione: (azione: AzioneConsegna, dettaglio?: DettaglioConsegna) => void
   size?: "sm" | "default"
 }) {
   const [conferma, setConferma] = useState(false)
+  const [annullo, setAnnullo] = useState(false)
   if (!riga.dataPagamento) {
     return <span className="text-xs text-muted-foreground">Non pagato</span>
   }
@@ -36,10 +38,17 @@ export function AzioniConsegna({
         </Button>
       ) : null}
       {riga.blocchettiConsegnati > 0 ? (
-        <Button type="button" size={size} variant="outline" disabled={pending} onClick={() => onAzione("annulla")}>
+        <Button type="button" size={size} variant="outline" disabled={pending} onClick={() => setAnnullo(true)}>
           Annulla
         </Button>
       ) : null}
+      <ModificaConsegna
+        tempi={riga.consegneIl}
+        consegnati={riga.blocchettiConsegnati}
+        massimo={riga.blocchettiDovuti}
+        pending={pending}
+        onAzione={onAzione}
+      />
       {conferma ? (
         <ModaleConferma
           titolo="Consegna"
@@ -49,6 +58,18 @@ export function AzioniConsegna({
           onConferma={() => {
             setConferma(false)
             onAzione("completa")
+          }}
+        />
+      ) : null}
+      {annullo ? (
+        <ModaleConferma
+          titolo="Annulla consegna"
+          testo={testoConfermaAnnulla(riga.debitore, riga.blocchettiConsegnati)}
+          pending={pending}
+          onChiudi={() => setAnnullo(false)}
+          onConferma={() => {
+            setAnnullo(false)
+            onAzione("annulla")
           }}
         />
       ) : null}

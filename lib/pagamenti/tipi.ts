@@ -52,7 +52,12 @@ export type FiltroElenco =
   | "da_consegnare"
   | "consegnati"
 
-export type AzioneConsegna = "completa" | "parziale" | "annulla"
+export type AzioneConsegna = "completa" | "parziale" | "annulla" | "modifica" | "rimuovi" | "registra"
+
+export type DettaglioConsegna = {
+  indice?: number
+  quando?: string
+}
 
 export type EsitoMerge =
   | "nuovo"
