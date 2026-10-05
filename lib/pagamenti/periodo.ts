@@ -1,3 +1,4 @@
+import { isoGiornoItalia } from "@/lib/format/ora-italia"
 import type { RigaElenco } from "@/lib/pagamenti/tipi"
 import type { VoceElenco } from "@/lib/pagamenti/voci"
 
@@ -14,9 +15,7 @@ export const PERIODO_VUOTO: Periodo = { campo: "pagamento", dal: null, al: null 
 export type PresetPeriodo = "tutto" | "oggi" | "settimana" | "mese"
 
 export function oggiLocale(adesso = new Date()): string {
-  const mese = String(adesso.getMonth() + 1).padStart(2, "0")
-  const giorno = String(adesso.getDate()).padStart(2, "0")
-  return `${adesso.getFullYear()}-${mese}-${giorno}`
+  return isoGiornoItalia(adesso)
 }
 
 export function giornoIso(valore: string | null): string | null {

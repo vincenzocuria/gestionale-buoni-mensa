@@ -1,3 +1,5 @@
+import { isoGiornoItalia } from "@/lib/format/ora-italia"
+
 export const PRIMO_ANNO_SCOLASTICO = 2026
 
 export type AnnoScolastico = {
@@ -59,7 +61,5 @@ export function annoPredefinito(anni: string[], oggi = new Date()): string {
 }
 
 function isoLocale(data: Date): string {
-  const mese = String(data.getMonth() + 1).padStart(2, "0")
-  const giorno = String(data.getDate()).padStart(2, "0")
-  return `${data.getFullYear()}-${mese}-${giorno}`
+  return isoGiornoItalia(data)
 }

@@ -1,8 +1,8 @@
 import { formatDataIt } from "@/lib/format/data-it"
+import { isoOraItalia } from "@/lib/format/ora-italia"
 
 export function adessoLocale(data = new Date()): string {
-  const cifra = (n: number) => String(n).padStart(2, "0")
-  return `${data.getFullYear()}-${cifra(data.getMonth() + 1)}-${cifra(data.getDate())}T${cifra(data.getHours())}:${cifra(data.getMinutes())}:${cifra(data.getSeconds())}`
+  return isoOraItalia(data)
 }
 
 export function leggiConsegne(valore: unknown): string[] {
