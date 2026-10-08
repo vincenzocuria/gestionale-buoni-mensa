@@ -4,6 +4,10 @@ import { NOME_COOKIE, sessioneValida } from "@/lib/auth/sessione"
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
+
+  // L'informativa privacy deve essere consultabile anche senza accesso.
+  if (pathname === "/privacy") return NextResponse.next()
+
   const valida = sessioneValida(request.cookies.get(NOME_COOKIE)?.value)
 
   if (pathname === "/accesso") {
