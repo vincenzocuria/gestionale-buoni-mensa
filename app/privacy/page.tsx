@@ -162,11 +162,12 @@ export default function PrivacyPage() {
 
             <section className="border-t pt-4 mt-6">
               <p className="text-sm text-muted-foreground">
-                <strong>Ultimo aggiornamento:</strong> {new Date().toLocaleDateString("it-IT")}
+                <strong>Ultimo aggiornamento:</strong> 8 ottobre 2026
               </p>
               <p className="text-xs text-muted-foreground mt-4">
-                Questa informativa deve essere revisionata e completata a cura del Comune in collaborazione con il DPO
-                e/o un consulente legale esperto in privacy. Le sezioni evidenziate in giallo richiedono integrazione.
+                ⚠️ <strong>ATTENZIONE:</strong> Questa informativa deve essere revisionata e completata a cura del Comune in collaborazione con il DPO
+                e/o un consulente legale esperto in privacy. Le sezioni evidenziate in giallo con &quot;DA COMPILARE&quot; richiedono integrazione
+                prima della pubblicazione definitiva.
               </p>
             </section>
           </div>
