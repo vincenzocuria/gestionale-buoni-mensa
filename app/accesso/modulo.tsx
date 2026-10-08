@@ -47,6 +47,11 @@ export function ModuloAccesso({ configurata }: { configurata: boolean }) {
           {attesa ? "Accesso…" : "Entra"}
         </Button>
       </form>
+      <p className="mt-4 text-center text-xs text-muted-foreground">
+        <a href="/privacy" className="underline hover:text-foreground">
+          Informativa Privacy
+        </a>
+      </p>
     </main>
   )
 }

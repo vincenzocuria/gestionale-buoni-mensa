@@ -24,4 +24,10 @@ CREATE TABLE IF NOT EXISTS pagamenti (
   consegne_il TEXT NOT NULL DEFAULT '[]'
 );
 CREATE INDEX IF NOT EXISTS idx_pagamenti_cf ON pagamenti (codice_fiscale);
+
+CREATE TABLE IF NOT EXISTS tentativi_accesso (
+  ip TEXT PRIMARY KEY,
+  tentativi INTEGER NOT NULL DEFAULT 0,
+  bloccato_fino_ms INTEGER NOT NULL DEFAULT 0
+);
 `

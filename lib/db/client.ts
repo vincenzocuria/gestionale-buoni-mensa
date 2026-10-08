@@ -36,7 +36,8 @@ export function creaClientLocale(file: string): Client {
 export function getClient(): Client {
   if (!globale.mensaClient) {
     const turso = configurazioneTurso()
-    if (!turso && process.env.VERCEL) {
+    const produzione = process.env.NODE_ENV === "production" || process.env.VERCEL
+    if (!turso && produzione) {
       throw new Error("Database non configurato: servono TURSO_DATABASE_URL e TURSO_AUTH_TOKEN.")
     }
     globale.mensaClient = turso ? createClient(turso) : creaClientLocale(percorsoSqliteLocale())
