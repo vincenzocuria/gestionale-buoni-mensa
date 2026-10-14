@@ -33,7 +33,7 @@ jobs:
       - name: Dipendenze
         run: npm ci
 
-      - name: Migrazioni (due volte: devono essere idempotenti)
+      - name: Migrazioni, applicate due volte perché idempotenti
         env:
           MENSA_DATABASE_ADMIN_URL: postgres://postgres:admin-ci@localhost:5432/postgres
           MENSA_APP_DB_PASSWORD: app-ci
