@@ -42,18 +42,38 @@ jobs:
           npm run migra
 
       - name: Lint
-        run: npm run lint
+        run: |
+          set +e
+          npm run lint > /tmp/lint.log 2>&1; esito=$?
+          cat /tmp/lint.log
+          # I log di Actions non sono leggibili dall'ambiente di sviluppo: gli errori diventano annotazioni.
+          if [ $esito -ne 0 ]; then grep -E -B2 "error|Error|✖" /tmp/lint.log | head -30 | sed 's/^/::error title=lint::/'; exit 1; fi
 
       - name: Controllo dei tipi
-        run: npm run typecheck
+        run: |
+          set +e
+          npm run typecheck > /tmp/tsc.log 2>&1; esito=$?
+          cat /tmp/tsc.log
+          # I log di Actions non sono leggibili dall'ambiente di sviluppo: gli errori diventano annotazioni.
+          if [ $esito -ne 0 ]; then grep -E "error" /tmp/tsc.log | head -30 | sed 's/^/::error title=tsc::/'; exit 1; fi
 
       - name: Test (unitari e database)
         env:
           TEST_DATABASE_ADMIN_URL: postgres://postgres:admin-ci@localhost:5432/postgres
-        run: npm test
+        run: |
+          set +e
+          npm test > /tmp/test.log 2>&1; esito=$?
+          cat /tmp/test.log
+          # I log di Actions non sono leggibili dall'ambiente di sviluppo: gli errori diventano annotazioni.
+          if [ $esito -ne 0 ]; then grep -E "not ok|Error|expected|actual|rror:" /tmp/test.log | head -30 | sed 's/^/::error title=test::/'; exit 1; fi
 
       - name: Build
-        run: npm run build
+        run: |
+          set +e
+          npm run build > /tmp/build.log 2>&1; esito=$?
+          cat /tmp/build.log
+          # I log di Actions non sono leggibili dall'ambiente di sviluppo: gli errori diventano annotazioni.
+          if [ $esito -ne 0 ]; then grep -E "rror|Failed|failed" /tmp/build.log | head -30 | sed 's/^/::error title=build::/'; exit 1; fi
 
       - name: Prova del server standalone (/api/salute)
         run: |
