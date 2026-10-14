@@ -44,6 +44,7 @@ export function contaFiltri(voci: VoceElenco[], ricerca: string): Record<FiltroE
     non_paganti: filtraVoci(voci, "non_paganti", ricerca).length,
     da_consegnare: filtraVoci(voci, "da_consegnare", ricerca).length,
     consegnati: filtraVoci(voci, "consegnati", ricerca).length,
+    anomalie: filtraVoci(voci, "anomalie", ricerca).length,
   }
 }
 
@@ -67,6 +68,7 @@ export function dataPiuRecente(date: (string | null)[]): string | null {
 
 function corrispondeFiltro(voce: VoceElenco, filtro: FiltroElenco): boolean {
   if (filtro === "tutti") return true
+  if (filtro === "anomalie") return voce.tipo === "gruppo" && voce.gruppo.esito === "anomalia"
   const stato = statoVoce(voce)
   if (filtro === "paganti") return stato !== "non_pagato"
   if (filtro === "non_paganti") return stato === "non_pagato"

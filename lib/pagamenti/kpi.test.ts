@@ -74,3 +74,24 @@ test("filtri e ricerca", () => {
   assert.equal(filtraPagamenti(righe, "tutti", "lucia").length, 1)
   assert.equal(filtraPagamenti(righe, "tutti", "'1").length, 1)
 })
+
+test("le anomalie si contano e si filtrano", () => {
+  const anomala: RigaElenco = {
+    ...righe[0],
+    iuv: "4",
+    debitore: "VERDI ANNA",
+    cognome: "VERDI",
+    nome: "ANNA",
+    codiceFiscale: "CCC",
+    importoCentesimi: 2500,
+    blocchettiDovuti: 0,
+  }
+  const conAnomalia = [...righe, anomala]
+  assert.equal(calcolaKpi(righe).anomalie, 0)
+  assert.equal(calcolaKpi(conAnomalia).anomalie, 1)
+  assert.deepEqual(
+    filtraPagamenti(conAnomalia, "anomalie", "").map((riga) => riga.iuv),
+    ["4"],
+  )
+  assert.equal(filtraPagamenti(conAnomalia, "anomalie", "rossi").length, 0)
+})

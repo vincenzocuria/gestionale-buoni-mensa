@@ -9,11 +9,12 @@ const VOCI: { chiave: keyof Kpi; etichetta: string; euro?: boolean }[] = [
   { chiave: "blocchettiConsegnati", etichetta: "Blocchetti consegnati" },
   { chiave: "incassatoCentesimi", etichetta: "Incassato", euro: true },
   { chiave: "daIncassareCentesimi", etichetta: "Da incassare", euro: true },
+  { chiave: "anomalie", etichetta: "Anomalie" },
 ]
 
 export function StrisciaKpi({ kpi }: { kpi: Kpi }) {
   return (
-    <section aria-label="Riepilogo" className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+    <section aria-label="Riepilogo" className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-7">
       {VOCI.map((voce) => (
         <Card key={voce.chiave} size="sm">
           <CardContent className="flex flex-col gap-1">

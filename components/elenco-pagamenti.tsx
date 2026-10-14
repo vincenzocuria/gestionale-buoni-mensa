@@ -350,5 +350,6 @@ function messaggioVuoto(totale: number, filtro: FiltroElenco, ricerca: string): 
   if (filtro === "consegnati") return "Nessun blocchetto risulta consegnato."
   if (filtro === "da_consegnare") return "Nessun blocchetto da consegnare."
   if (filtro === "paganti") return "Nessun bollettino pagato."
+  if (filtro === "anomalie") return "Nessuna anomalia: tutti i pagamenti tornano con i blocchetti da 40 €."
   return "Nessun bollettino in elenco."
 }
