@@ -76,16 +76,26 @@ jobs:
           if [ $esito -ne 0 ]; then grep -E "rror|Failed|failed" /tmp/build.log | head -30 | sed 's/^/::error title=build::/'; exit 1; fi
 
       - name: Prova del server standalone (/api/salute)
+        env:
+          MENSA_DATABASE_ADMIN_URL: postgres://postgres:admin-ci@localhost:5432/postgres
+          # I test reimpostano la password di mensa_app (il ruolo è unico nel server): la riallineo.
+          MENSA_APP_DB_PASSWORD: app-ci
         run: |
+          npm run migra
           cp -r public .next/standalone/
           cp -r .next/static .next/standalone/.next/static
           (cd .next/standalone && NODE_ENV=production PORT=3000 HOSTNAME=127.0.0.1 \
             MENSA_DATABASE_URL=postgres://mensa_app:app-ci@localhost:5432/postgres \
             UFFICIO_PASSWORD=prova-ci node server.js > /tmp/server.log 2>&1 &)
           for i in $(seq 1 30); do curl -sf http://127.0.0.1:3000/api/salute && break; sleep 1; done
-          curl -sf http://127.0.0.1:3000/api/salute | grep -q '"ok"' || { cat /tmp/server.log; exit 1; }
-          # Le API restano chiuse senza accesso.
-          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/api/pagamenti)" = "401"
+          salute=$(curl -s http://127.0.0.1:3000/api/salute)
+          api=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/api/pagamenti)
+          echo "salute=$salute api=$api"
+          if ! echo "$salute" | grep -q '"ok"' || [ "$api" != "401" ]; then
+            echo "::error title=standalone::salute=$salute api=$api"
+            tail -n 20 /tmp/server.log | sed 's/^/::error title=server::/'
+            exit 1
+          fi
 
       - name: Immagine Docker
         run: docker build -t gestionale-buoni-mensa:ci .
