@@ -49,7 +49,7 @@ describe("rate limiting login", { skip: saltaDb }, () => {
       await registraTentativoFallito(client, ip, ora)
     }
 
-    let bloccato = await verificaTentativiAccesso(client, ip, ora)
+    const bloccato = await verificaTentativiAccesso(client, ip, ora)
     assert.equal(bloccato.consentito, false, "dovrebbe essere bloccato")
     assert.ok(bloccato.riprovaDopoMs && bloccato.riprovaDopoMs > 0)
 
