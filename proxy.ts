@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 import { NOME_COOKIE, RINNOVO_API_SECONDI, RINNOVO_PAGINE_SECONDI, daRinnovare, leggiSessione } from "@/lib/auth/sessione"
+import { urlSuite } from "@/lib/auth/origine"
 
 // Pagine raggiungibili senza sessione: accesso dalla suite, uscita, salute per Coolify, privacy.
 function pubblico(pathname: string): boolean {
@@ -31,7 +32,7 @@ export function proxy(request: NextRequest) {
       }
     } else if (request.method === "GET" && daRinnovare(sessione, RINNOVO_PAGINE_SECONDI)) {
       // Ogni 15 minuti si ripassa dalla suite, che ricontrolla utente e permessi.
-      const suite = (process.env.SUITE_URL ?? "https://suite.vcuria.app").replace(/\/$/, "")
+      const suite = urlSuite()
       const ritorno = `${pathname}${request.nextUrl.search}`
       return NextResponse.redirect(`${suite}/vai/mensa?r=${encodeURIComponent(ritorno)}`, 303)
     }

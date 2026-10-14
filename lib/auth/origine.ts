@@ -5,3 +5,8 @@ export function destinazione(request: Request, percorso: string): URL {
   if (!host) return new URL(percorso, request.url)
   return new URL(percorso, `${proto}://${host}`)
 }
+
+// Indirizzo della suite (home e accesso), senza barra finale.
+export function urlSuite(): string {
+  return (process.env.SUITE_URL ?? "https://suite.vcuria.app").replace(/\/$/, "")
+}

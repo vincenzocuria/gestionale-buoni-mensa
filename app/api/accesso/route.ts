@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { utenteDa } from "@/lib/auth/guardia"
-import { destinazione } from "@/lib/auth/origine"
+import { destinazione, urlSuite } from "@/lib/auth/origine"
 import { NOME_COOKIE, opzioniCookie } from "@/lib/auth/sessione"
 import { registraAttivita } from "@/lib/db/registro"
 
@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic"
 export async function POST(request: Request) {
   const utente = utenteDa(request)
   if (utente) await registraAttivita(utente, "uscita").catch(() => {})
-  const suite = (process.env.SUITE_URL ?? "https://suite.vcuria.app").replace(/\/$/, "")
+  const suite = urlSuite()
   const risposta = NextResponse.redirect(utente ? `${suite}/` : destinazione(request, "/accesso").toString(), 303)
   risposta.cookies.set(NOME_COOKIE, "", { ...opzioniCookie(), maxAge: 0 })
   return risposta
