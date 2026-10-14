@@ -29,6 +29,8 @@ export function ModificaConsegna({
 
   useEffect(() => {
     if (!aperto) return
+    // Le bozze ripartono dagli orari salvati a ogni apertura: comportamento voluto.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setBozze(tempi.map((iso) => iso.slice(0, 16)))
     setNuova("")
     setTogli(null)

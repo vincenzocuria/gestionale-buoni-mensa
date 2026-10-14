@@ -17,6 +17,8 @@ export function DialogModale({
   const [destinazione, setDestinazione] = useState<HTMLElement | null>(null)
 
   useEffect(() => {
+    // Il portale si monta solo nel browser, dopo l'idratazione: comportamento voluto.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDestinazione(document.body)
   }, [])
 
