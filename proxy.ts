@@ -8,6 +8,9 @@ export function proxy(request: NextRequest) {
   // L'informativa privacy deve essere consultabile anche senza accesso.
   if (pathname === "/privacy") return NextResponse.next()
 
+  // Controllo di salute per Coolify: senza dati, deve rispondere anche senza accesso.
+  if (pathname === "/api/salute") return NextResponse.next()
+
   const valida = sessioneValida(request.cookies.get(NOME_COOKIE)?.value)
 
   if (pathname === "/accesso") {

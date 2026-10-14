@@ -8,10 +8,10 @@
  * - Finestra di quiet period: dopo 60s dalla scadenza blocco, i tentativi si azzerano
  * - Dopo scadenza blocco: permette 1 tentativo (se fallisce, raddoppia il backoff precedente)
  *
- * Compatibile con ambiente serverless (Vercel) usando tabella Turso.
+ * Lo stato sta nella tabella mensa.tentativi_accesso, condivisa fra le istanze.
  */
 
-import type { Client } from "@libsql/client"
+import type { Esecutore } from "@/lib/db/client"
 
 const MAX_TENTATIVI = 5
 const FINESTRA_MS = 60_000
@@ -24,17 +24,14 @@ export interface RateLimitResult {
   riprovaDopoMs?: number
 }
 
-export async function verificaTentativiAccesso(client: Client, ip: string, ora = Date.now()): Promise<RateLimitResult> {
-  const risultato = await client.execute({
-    sql: "SELECT tentativi, bloccato_fino_ms FROM tentativi_accesso WHERE ip = ?",
-    args: [ip],
-  })
+export async function verificaTentativiAccesso(client: Esecutore, ip: string, ora = Date.now()): Promise<RateLimitResult> {
+  const righe = await leggiRiga(client, ip)
 
-  if (risultato.rows.length === 0) {
+  if (righe.length === 0) {
     return { consentito: true, tentativiRimasti: MAX_TENTATIVI }
   }
 
-  const riga = risultato.rows[0]
+  const riga = righe[0]
   const tentativi = Number(riga.tentativi)
   const bloccatoFinoMs = Number(riga.bloccato_fino_ms)
 
@@ -57,17 +54,14 @@ export async function verificaTentativiAccesso(client: Client, ip: string, ora =
   return { consentito: true, tentativiRimasti: Math.max(0, MAX_TENTATIVI - tentativi) }
 }
 
-export async function registraTentativoFallito(client: Client, ip: string, ora = Date.now()): Promise<void> {
-  const risultato = await client.execute({
-    sql: "SELECT tentativi, bloccato_fino_ms FROM tentativi_accesso WHERE ip = ?",
-    args: [ip],
-  })
+export async function registraTentativoFallito(client: Esecutore, ip: string, ora = Date.now()): Promise<void> {
+  const righe = await leggiRiga(client, ip)
 
   let nuoviTentativi = 1
   let nuovoBloccoMs = 0
 
-  if (risultato.rows.length > 0) {
-    const riga = risultato.rows[0]
+  if (righe.length > 0) {
+    const riga = righe[0]
     const tentativiPrec = Number(riga.tentativi)
     const bloccatoFinoMs = Number(riga.bloccato_fino_ms)
 
@@ -83,27 +77,20 @@ export async function registraTentativoFallito(client: Client, ip: string, ora =
     nuovoBloccoMs = ora + Math.min(backoffMs, MAX_BACKOFF_MS)
   }
 
-  await client.execute({
-    sql: `INSERT INTO tentativi_accesso (ip, tentativi, bloccato_fino_ms) 
-          VALUES (?, ?, ?) 
-          ON CONFLICT(ip) DO UPDATE SET tentativi = ?, bloccato_fino_ms = ?`,
-    args: [ip, nuoviTentativi, nuovoBloccoMs, nuoviTentativi, nuovoBloccoMs],
-  })
+  await client`
+    INSERT INTO tentativi_accesso (ip, tentativi, bloccato_fino_ms)
+    VALUES (${ip}, ${nuoviTentativi}, ${nuovoBloccoMs})
+    ON CONFLICT (ip) DO UPDATE SET tentativi = EXCLUDED.tentativi, bloccato_fino_ms = EXCLUDED.bloccato_fino_ms
+  `
 }
 
-export async function azzeraTentativi(client: Client, ip: string): Promise<void> {
-  await client.execute({
-    sql: "DELETE FROM tentativi_accesso WHERE ip = ?",
-    args: [ip],
-  })
+export async function azzeraTentativi(client: Esecutore, ip: string): Promise<void> {
+  await client`DELETE FROM tentativi_accesso WHERE ip = ${ip}`
 }
 
-export async function assicuraTabellaEsiste(client: Client): Promise<void> {
-  await client.execute(`
-    CREATE TABLE IF NOT EXISTS tentativi_accesso (
-      ip TEXT PRIMARY KEY,
-      tentativi INTEGER NOT NULL DEFAULT 0,
-      bloccato_fino_ms INTEGER NOT NULL DEFAULT 0
-    )
-  `)
+// bloccato_fino_ms è bigint: postgres.js lo restituisce come stringa, Number() lo riporta a numero.
+async function leggiRiga(client: Esecutore, ip: string) {
+  return client<{ tentativi: number | string; bloccato_fino_ms: number | string }[]>`
+    SELECT tentativi, bloccato_fino_ms FROM tentativi_accesso WHERE ip = ${ip}
+  `
 }

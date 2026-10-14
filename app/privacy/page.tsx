@@ -79,7 +79,7 @@ export default function PrivacyPage() {
               <p className="mb-2">{"Possono inoltre venire a conoscenza dei dati, nei limiti strettamente necessari alle rispettive attività, i seguenti soggetti esterni che forniscono servizi al Comune, designati, ove previsto, responsabili del trattamento ai sensi dell'art. 28 GDPR:"}</p>
               <ul className="list-disc pl-6 space-y-1">
                 <li><strong>{"Vercel Inc."}</strong>{" (Stati Uniti): servizio di hosting ed esecuzione dell'applicazione;"}</li>
-                <li><strong>{"Turso"}</strong>{": servizio di database gestito in cui sono archiviati i dati dell'applicazione;"}</li>
+                <li>{"database PostgreSQL ospitato su infrastruttura del gestore in LAN, in cui sono archiviati i dati dell'applicazione;"}</li>
                 <li>{"il fornitore incaricato dello sviluppo e della manutenzione dell'applicazione, per le sole attività di assistenza tecnica."}</li>
               </ul>
               <p className="mb-2">{"I dati possono essere comunicati ad autorità pubbliche e organi di controllo nei soli casi previsti dalla legge. I dati personali non sono diffusi, salvo quanto eventualmente indicato in questa informativa."}</p>

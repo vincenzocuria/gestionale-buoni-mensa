@@ -1,21 +1,30 @@
-import { describe, test } from "node:test"
+import { after, before, describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { createClient, type Client } from "@libsql/client"
+import type { Sql } from "../db/client"
+import { creaDatabaseTest, saltaDb, type DatabaseTest } from "../../test/db-test"
 import { azzeraTentativi, registraTentativoFallito, verificaTentativiAccesso } from "./rate-limit"
 
-async function creaClientTest(): Promise<Client> {
-  const client = createClient({ url: ":memory:" })
-  await client.execute(`
-    CREATE TABLE tentativi_accesso (
-      ip TEXT PRIMARY KEY,
-      tentativi INTEGER NOT NULL DEFAULT 0,
-      bloccato_fino_ms INTEGER NOT NULL DEFAULT 0
-    )
-  `)
-  return client
+// Gira sul Postgres reale (TEST_DATABASE_ADMIN_URL), con il ruolo mensa_app.
+let db: DatabaseTest
+
+before(async () => {
+  if (!saltaDb) db = await creaDatabaseTest("rate")
+})
+
+after(async () => {
+  if (!saltaDb) await db.chiudi()
+})
+
+async function creaClientTest(): Promise<Sql> {
+  return db.sql
 }
 
-describe("rate limiting login", () => {
+async function bloccatoFino(client: Sql, ip: string): Promise<number> {
+  const [riga] = await client<{ bloccato_fino_ms: string }[]>`SELECT bloccato_fino_ms FROM tentativi_accesso WHERE ip = ${ip}`
+  return Number(riga.bloccato_fino_ms)
+}
+
+describe("rate limiting login", { skip: saltaDb }, () => {
   test("permette i primi 5 tentativi", async () => {
     const client = await creaClientTest()
     const ip = "192.168.1.1"
@@ -59,18 +68,12 @@ describe("rate limiting login", () => {
       await registraTentativoFallito(client, ip, ora)
     }
 
-    const primoBackoff = (await client.execute({
-      sql: "SELECT bloccato_fino_ms FROM tentativi_accesso WHERE ip = ?",
-      args: [ip],
-    })).rows[0].bloccato_fino_ms as number
+    const primoBackoff = await bloccatoFino(client, ip)
 
     ora = primoBackoff + 1000
     await registraTentativoFallito(client, ip, ora)
 
-    const secondoBackoff = (await client.execute({
-      sql: "SELECT bloccato_fino_ms FROM tentativi_accesso WHERE ip = ?",
-      args: [ip],
-    })).rows[0].bloccato_fino_ms as number
+    const secondoBackoff = await bloccatoFino(client, ip)
 
     const primoBackoffDurata = primoBackoff - 1000000
     const secondoBackoffDurata = secondoBackoff - ora
@@ -86,23 +89,19 @@ describe("rate limiting login", () => {
 
     for (let i = 0; i < 20; i++) {
       await registraTentativoFallito(client, ip, ora)
-      const result = await client.execute({
-        sql: "SELECT bloccato_fino_ms FROM tentativi_accesso WHERE ip = ?",
-        args: [ip],
-      })
-      if (result.rows[0].bloccato_fino_ms) {
-        ora = Number(result.rows[0].bloccato_fino_ms) + 100
+      const fino = await bloccatoFino(client, ip)
+      if (fino) {
+        ora = fino + 100
       }
     }
 
-    const risultato = await client.execute({
-      sql: "SELECT tentativi, bloccato_fino_ms FROM tentativi_accesso WHERE ip = ?",
-      args: [ip],
-    })
+    const [riga] = await client<{ tentativi: number; bloccato_fino_ms: string }[]>`
+      SELECT tentativi, bloccato_fino_ms FROM tentativi_accesso WHERE ip = ${ip}
+    `
 
-    const tentativi = Number(risultato.rows[0].tentativi)
-    const bloccatoFino = Number(risultato.rows[0].bloccato_fino_ms)
-    const backoffMs = bloccatoFino - ora
+    const tentativi = Number(riga.tentativi)
+    const fino = Number(riga.bloccato_fino_ms)
+    const backoffMs = fino - ora
 
     assert.ok(tentativi >= 5, "dovrebbe avere molti tentativi")
     assert.ok(backoffMs <= MAX_BACKOFF, `backoff ${backoffMs}ms non dovrebbe superare ${MAX_BACKOFF}ms`)
@@ -117,10 +116,7 @@ describe("rate limiting login", () => {
       await registraTentativoFallito(client, ip, ora)
     }
 
-    const primaScadenza = (await client.execute({
-      sql: "SELECT bloccato_fino_ms FROM tentativi_accesso WHERE ip = ?",
-      args: [ip],
-    })).rows[0].bloccato_fino_ms as number
+    const primaScadenza = await bloccatoFino(client, ip)
 
     ora = primaScadenza + 61000
 
@@ -157,5 +153,17 @@ describe("rate limiting login", () => {
     const result = await verificaTentativiAccesso(client, ip, ora)
     assert.equal(result.consentito, false)
     assert.ok(result.riprovaDopoMs !== undefined && result.riprovaDopoMs > 0)
+  })
+
+  test("i millisecondi oltre i 32 bit restano esatti", async () => {
+    const client = await creaClientTest()
+    const ip = "192.168.1.8"
+    const ora = Date.UTC(2026, 9, 14, 8, 0, 0)
+
+    for (let i = 0; i < 5; i++) await registraTentativoFallito(client, ip, ora)
+
+    assert.equal(await bloccatoFino(client, ip), ora + 5_000)
+    const bloccato = await verificaTentativiAccesso(client, ip, ora + 1_000)
+    assert.deepEqual(bloccato, { consentito: false, riprovaDopoMs: 4_000 })
   })
 })

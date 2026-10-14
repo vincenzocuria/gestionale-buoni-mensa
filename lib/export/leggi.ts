@@ -1,12 +1,12 @@
 import { eAnnoImportato, righeDellAnno } from "@/lib/anno-scolastico/calcola"
-import type { Client } from "@libsql/client"
+import type { Esecutore } from "@/lib/db/client"
 import { leggiTutti } from "@/lib/db/pagamenti"
 import { eFiltroElenco, filtraPagamenti } from "@/lib/pagamenti/filtra"
 import { filtraRighePeriodo, PERIODO_VUOTO, type Periodo } from "@/lib/pagamenti/periodo"
 import type { FiltroElenco, RigaElenco } from "@/lib/pagamenti/tipi"
 import { aVista } from "@/lib/pagamenti/vista"
 
-export async function righeAnno(client: Client, anno: string): Promise<RigaElenco[] | null> {
+export async function righeAnno(client: Esecutore, anno: string): Promise<RigaElenco[] | null> {
   if (!eAnnoImportato(anno)) return null
   const viste = (await leggiTutti(client)).map(aVista).filter((riga) => eAnnoImportato(riga.annoScolastico))
   return righeDellAnno(viste, anno)

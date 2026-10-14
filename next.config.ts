@@ -1,7 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["@libsql/client", "libsql"],
+  // Immagine Docker leggera per Coolify (node server.js).
+  output: "standalone",
+  serverExternalPackages: ["postgres"],
   agentRules: false,
   allowedDevOrigins: ["127.0.0.1"],
   async headers() {

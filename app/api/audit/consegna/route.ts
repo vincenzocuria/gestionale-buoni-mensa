@@ -34,16 +34,9 @@ export async function POST(request: Request) {
         : { ok: true as const, piano: pianoConsegnaGruppo(gruppo, letto.azione, adessoLocale()) }
     if (!esito.ok) return NextResponse.json({ errore: esito.messaggio }, { status: 409 })
 
-    const transazione = await client.transaction("write")
-    try {
+    await client.begin(async (transazione) => {
       for (const voce of esito.piano) await salvaConsegna(transazione, voce.iuv, voce.consegnati, voce.consegneIl)
-      await transazione.commit()
-    } catch (errore) {
-      await transazione.rollback()
-      throw errore
-    } finally {
-      transazione.close()
-    }
+    })
     return NextResponse.json({ ok: true })
   } catch (errore) {
     const messaggio = messaggioDatabase(errore)

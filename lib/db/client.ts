@@ -1,72 +1,52 @@
-import fs from "node:fs"
-import path from "node:path"
-import { createClient, type Client } from "@libsql/client"
-import { assicuraAnnoScolastico } from "@/lib/db/assicura-anno-scolastico"
-import { assicuraConsegne } from "@/lib/db/assicura-consegne"
-import { SCHEMA_SQL } from "@/lib/db/schema"
-import { importaSeVuoto } from "@/lib/seed/importa-se-vuoto"
+import postgres from "postgres"
+
+// Connessione al Postgres self-hosted del Comune con il ruolo dedicato mensa_app
+// (search_path = mensa). Lo schema si crea con le migrazioni (npm run migra):
+// a runtime l'app esegue solo DML. In LAN non serve TLS; impostare
+// MENSA_DATABASE_SSL=require se il database è raggiunto da una rete non fidata.
+
+export type Sql = postgres.Sql
+/** Connessione o transazione aperta con `sql.begin`: entrambe eseguono query. */
+export type Esecutore = postgres.Sql | postgres.TransactionSql
 
 type GlobaleMensa = typeof globalThis & {
-  mensaClient?: Client
-  mensaPronto?: Promise<void>
+  mensaSql?: postgres.Sql
 }
 
 const globale = globalThis as GlobaleMensa
 
-export function configurazioneTurso(): { url: string; authToken: string } | null {
-  const url = process.env.TURSO_DATABASE_URL?.trim()
-  const authToken = process.env.TURSO_AUTH_TOKEN?.trim()
-  if (!url && !authToken) return null
-  if (!url || !authToken) {
-    throw new Error("Servono sia TURSO_DATABASE_URL sia TURSO_AUTH_TOKEN.")
-  }
-  return { url, authToken }
+const MESSAGGIO_NON_CONFIGURATO = "Database non configurato: manca MENSA_DATABASE_URL."
+
+export function urlDatabase(): string {
+  const url = process.env.MENSA_DATABASE_URL?.trim()
+  if (!url) throw new Error(MESSAGGIO_NON_CONFIGURATO)
+  return url
 }
 
-export function percorsoSqliteLocale(): string {
-  return path.join(process.cwd(), "data", "mensa.sqlite")
+export function creaSql(url: string, max = Number(process.env.MENSA_DATABASE_POOL ?? 5)): postgres.Sql {
+  return postgres(url, {
+    max: Number.isFinite(max) && max > 0 ? max : 5,
+    idle_timeout: 30,
+    connect_timeout: 10,
+    ssl: process.env.MENSA_DATABASE_SSL === "require" ? "require" : false,
+    connection: { search_path: "mensa", application_name: "mensa" },
+    transform: { undefined: null },
+    onnotice: () => {},
+  })
 }
 
-export function creaClientLocale(file: string): Client {
-  fs.mkdirSync(path.dirname(file), { recursive: true })
-  const assoluto = path.resolve(file).replace(/\\/g, "/")
-  return createClient({ url: `file:${assoluto}` })
+export function getClient(): postgres.Sql {
+  globale.mensaSql ??= creaSql(urlDatabase())
+  return globale.mensaSql
 }
 
-export function getClient(): Client {
-  if (!globale.mensaClient) {
-    const turso = configurazioneTurso()
-    const produzione = process.env.NODE_ENV === "production" || process.env.VERCEL
-    if (!turso && produzione) {
-      throw new Error("Database non configurato: servono TURSO_DATABASE_URL e TURSO_AUTH_TOKEN.")
-    }
-    globale.mensaClient = turso ? createClient(turso) : creaClientLocale(percorsoSqliteLocale())
-    globale.mensaPronto = prepara(globale.mensaClient, turso == null)
-  }
-  return globale.mensaClient
-}
-
-export async function dbPronto(): Promise<Client> {
-  const client = getClient()
-  await globale.mensaPronto
-  await assicuraConsegne(client)
-  return client
+/** Mantenuta per compatibilità con le route: lo schema è già pronto grazie alle migrazioni. */
+export async function dbPronto(): Promise<postgres.Sql> {
+  return getClient()
 }
 
 export function messaggioDatabase(errore: unknown): string | null {
   if (!(errore instanceof Error)) return null
   if (errore.message.startsWith("Database non configurato")) return errore.message
-  if (errore.message.startsWith("Servono sia TURSO")) return errore.message
   return null
-}
-
-async function prepara(client: Client, locale: boolean): Promise<void> {
-  if (client.protocol === "file") {
-    await client.execute("PRAGMA busy_timeout = 5000")
-    await client.execute("PRAGMA journal_mode = WAL")
-  }
-  await client.executeMultiple(SCHEMA_SQL)
-  await assicuraAnnoScolastico(client)
-  await assicuraConsegne(client)
-  if (locale) await importaSeVuoto(client)
 }
