@@ -7,6 +7,9 @@ RUN npm ci
 FROM node:22-alpine AS build
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
+# Il footer mostra dove gira l'app e quale versione: Coolify passa il commit come SOURCE_COMMIT.
+ARG SOURCE_COMMIT=""
+ENV MENSA_SERVER=comune MENSA_VERSIONE=$SOURCE_COMMIT
 COPY --from=dipendenze /app/node_modules ./node_modules
 COPY . .
 RUN npm run build
