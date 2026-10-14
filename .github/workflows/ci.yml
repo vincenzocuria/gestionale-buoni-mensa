@@ -86,7 +86,7 @@ jobs:
           cp -r .next/static .next/standalone/.next/static
           (cd .next/standalone && NODE_ENV=production PORT=3000 HOSTNAME=127.0.0.1 \
             MENSA_DATABASE_URL=postgres://mensa_app:app-ci@localhost:5432/postgres \
-            UFFICIO_PASSWORD=prova-ci node server.js > /tmp/server.log 2>&1 &)
+            MENSA_SESSION_SECRET=prova-ci-sessione-lunga-almeno-32-caratteri node server.js > /tmp/server.log 2>&1 &)
           for i in $(seq 1 30); do curl -sf http://127.0.0.1:3000/api/salute && break; sleep 1; done
           salute=$(curl -s http://127.0.0.1:3000/api/salute)
           api=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/api/pagamenti)

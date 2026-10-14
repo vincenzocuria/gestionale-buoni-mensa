@@ -1,45 +1,70 @@
-import { createHash, timingSafeEqual } from "node:crypto"
+import { createHmac, timingSafeEqual } from "node:crypto"
+import type { RuoloModulo } from "@/lib/auth/sso-suite"
+
+// Sessione personale firmata (HMAC-SHA256) creata dopo l'accesso dalla suite.
+// Contiene l'identità dell'utente: niente più password condivisa dell'ufficio.
 
 export const NOME_COOKIE = "mensa_sessione"
+export const DURATA_SECONDI = 8 * 60 * 60
 
-export function passwordConfigurata(): boolean {
-  return Boolean(process.env.UFFICIO_PASSWORD)
+export type DatiSessione = {
+  sub: string
+  email: string
+  nome: string
+  ruolo_modulo: RuoloModulo
+  iat: number
+  exp: number
 }
 
-export function passwordCorretta(inserita: string): boolean {
-  const attesa = process.env.UFFICIO_PASSWORD
-  if (!attesa) return false
-  return timingSafeEqual(impronta(inserita), impronta(attesa))
+// Ogni 15 minuti la sessione si rinnova passando dalla suite, che ricontrolla
+// che l'utente sia ancora attivo e abilitato (revoca effettiva entro 15 minuti).
+export const RINNOVO_PAGINE_SECONDI = 15 * 60
+// Le chiamate alle API restano valide un po' di più, per non perdere un lavoro in corso.
+export const RINNOVO_API_SECONDI = 60 * 60
+
+export function daRinnovare(dati: DatiSessione, limiteSecondi: number, adessoMs = Date.now()): boolean {
+  return Math.floor(adessoMs / 1000) - dati.iat > limiteSecondi
 }
 
-export function tokenSessione(): string | null {
-  const password = process.env.UFFICIO_PASSWORD
-  if (!password) return null
-  return createHash("sha256").update(`mensa-ufficio:${password}`).digest("hex")
+function segreto(): string {
+  const s = process.env.MENSA_SESSION_SECRET
+  if (!s || s.length < 32) throw new Error("MENSA_SESSION_SECRET mancante o troppo corta (min 32 caratteri)")
+  return s
 }
 
-export function sessioneValida(valore: string | undefined | null): boolean {
-  const atteso = tokenSessione()
-  if (!atteso || !valore) return false
-  return timingSafeEqual(impronta(valore), impronta(atteso))
+function firma(payload: string): string {
+  return createHmac("sha256", segreto()).update(payload).digest("base64url")
 }
 
-export function opzioniCookie(): {
-  httpOnly: true
-  sameSite: "lax"
-  secure: boolean
-  path: string
-  maxAge: number
-} {
-  return {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 60 * 60 * 12,
+export function creaTokenSessione(dati: Omit<DatiSessione, "exp" | "iat">, adessoMs = Date.now()): string {
+  const iat = Math.floor(adessoMs / 1000)
+  const payload = Buffer.from(JSON.stringify({ ...dati, iat, exp: iat + DURATA_SECONDI })).toString("base64url")
+  return `${payload}.${firma(payload)}`
+}
+
+export function leggiSessione(valore: string | undefined | null, adessoMs = Date.now()): DatiSessione | null {
+  if (!valore || valore.length > 2000) return null
+  const [payload, firmaRicevuta, extra] = valore.split(".")
+  if (!payload || !firmaRicevuta || extra !== undefined) return null
+  try {
+    const attesa = Buffer.from(firma(payload))
+    const ricevuta = Buffer.from(firmaRicevuta)
+    if (attesa.length !== ricevuta.length || !timingSafeEqual(attesa, ricevuta)) return null
+    const dati = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as DatiSessione
+    if (typeof dati.exp !== "number" || typeof dati.iat !== "number" || dati.exp * 1000 < adessoMs) return null
+    if (!dati.sub || !dati.email) return null
+    return dati
+  } catch {
+    return null
   }
 }
 
-function impronta(valore: string): Buffer {
-  return createHash("sha256").update(valore).digest()
+export function opzioniCookie() {
+  return {
+    httpOnly: true as const,
+    sameSite: "lax" as const,
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: DURATA_SECONDI,
+  }
 }

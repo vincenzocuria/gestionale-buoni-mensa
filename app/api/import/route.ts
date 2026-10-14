@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
-import { bloccaSeChiuso } from "@/lib/auth/guardia"
+import { richiediScrittura } from "@/lib/auth/guardia"
+import { registraAttivita } from "@/lib/db/registro"
 import { dbPronto, messaggioDatabase } from "@/lib/db/client"
 import { eseguiImport, messaggioImport } from "@/lib/import/esegui-import"
 
@@ -7,8 +8,8 @@ export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 export async function POST(request: Request) {
-  const blocco = bloccaSeChiuso(request)
-  if (blocco) return blocco
+  const utente = await richiediScrittura(request, "import")
+  if (utente instanceof NextResponse) return utente
 
   const csv = await leggiCsv(request)
   if (csv == null) {
@@ -24,6 +25,7 @@ export async function POST(request: Request) {
   try {
     const client = await dbPronto()
     const riepilogo = await eseguiImport(client, csv)
+    await registraAttivita(utente, "import", "ok", { byte: csv.length })
     return NextResponse.json(riepilogo)
   } catch (errore) {
     const messaggio = messaggioImport(errore) ?? messaggioDatabase(errore)

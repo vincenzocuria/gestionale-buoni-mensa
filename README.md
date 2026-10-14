@@ -10,12 +10,18 @@ L’app gira in un container Docker su Coolify (vedi `Dockerfile`: build standal
 
 Variabili d’ambiente del container:
 
-- `UFFICIO_PASSWORD` — password dell’ufficio
+- `SUITE_URL` — indirizzo della Suite comunale (predefinito `https://suite.vcuria.app`)
+- `SUITE_SSO_PUBLIC_KEY` — chiave pubblica Ed25519 della suite, per verificare il collegamento di accesso
+- `MENSA_SESSION_SECRET` — segreto della sessione (almeno 32 caratteri casuali)
 - `MENSA_DATABASE_URL` — es. `postgres://mensa_app:PASSWORD@192.168.1.40:5432/postgres`
 - `MENSA_DATABASE_SSL` — facoltativa: `require` solo se il database è raggiunto da una rete non fidata
 - `MENSA_DATABASE_POOL` — facoltativa: connessioni massime (predefinito 5)
 
-La password non è nel codice. Senza `UFFICIO_PASSWORD` l’accesso resta chiuso. Senza `MENSA_DATABASE_URL` l’app risponde «Database non configurato».
+### Accesso
+
+Non c’è più una password dell’ufficio: ognuno entra dalla Suite comunale con il proprio account, se l’amministratore gli ha abilitato il modulo Mensa (Amministrazione → Utenti). La suite apre `/api/accesso/link` con un collegamento firmato e monouso (docs/SSO.md di suite-comune); Mensa crea una sessione personale di al massimo 8 ore e ogni 15 minuti ripassa dalla suite, così una disattivazione ha effetto subito. Con il ruolo «lettura» si consulta il registro ma non si registrano consegne né import. Accessi, consegne e import finiscono in `mensa.registro_attivita` con l’utente.
+
+Senza `SUITE_SSO_PUBLIC_KEY` o `MENSA_SESSION_SECRET` l’accesso resta chiuso. Senza `MENSA_DATABASE_URL` l’app risponde «Database non configurato».
 
 ### Schema del database
 
@@ -37,7 +43,7 @@ Dopo aver copiato dati da un database precedente, `select mensa.compila_anno_sco
 npm install
 ```
 
-Serve un PostgreSQL (16 o successivo). Creare `.env.local` (non va committato) partendo da `.env.example`, con `UFFICIO_PASSWORD` e `MENSA_DATABASE_URL`, e applicare le migrazioni con `npm run migra` (con `MENSA_DATABASE_ADMIN_URL` e `MENSA_APP_DB_PASSWORD` nell’ambiente, come sopra).
+Serve un PostgreSQL (16 o successivo). Creare `.env.local` (non va committato) partendo da `.env.example`, con `MENSA_DATABASE_URL`, `MENSA_SESSION_SECRET` e `SUITE_SSO_PUBLIC_KEY` (quella della suite locale: `npm run chiavi` in suite-comune), e applicare le migrazioni con `npm run migra` (con `MENSA_DATABASE_ADMIN_URL` e `MENSA_APP_DB_PASSWORD` nell’ambiente, come sopra).
 
 Per avere dei dati di prova, con un export in `data/StampaRicerca.csv` e il registro vuoto:
 

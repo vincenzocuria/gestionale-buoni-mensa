@@ -3,7 +3,8 @@ import { analizzaBlocchetti, pianoConsegnaGruppo } from "@/lib/audit/gruppi"
 import { pianoOrarioGruppo } from "@/lib/consegna/gruppo"
 import { leggiCorpoConsegna } from "@/lib/consegna/richiesta"
 import { adessoLocale } from "@/lib/consegna/tempi"
-import { bloccaSeChiuso } from "@/lib/auth/guardia"
+import { richiediScrittura } from "@/lib/auth/guardia"
+import { registraAttivita } from "@/lib/db/registro"
 import { dbPronto, messaggioDatabase } from "@/lib/db/client"
 import { leggiTutti, salvaConsegna } from "@/lib/db/pagamenti"
 import { aVista } from "@/lib/pagamenti/vista"
@@ -12,8 +13,8 @@ export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 export async function POST(request: Request) {
-  const blocco = bloccaSeChiuso(request)
-  if (blocco) return blocco
+  const utente = await richiediScrittura(request, "consegna.gruppo")
+  if (utente instanceof NextResponse) return utente
 
   const corpo = await request.json().catch(() => null)
   const id = corpo && typeof corpo === "object" ? String((corpo as { id?: unknown }).id ?? "") : ""
@@ -37,6 +38,7 @@ export async function POST(request: Request) {
     await client.begin(async (transazione) => {
       for (const voce of esito.piano) await salvaConsegna(transazione, voce.iuv, voce.consegnati, voce.consegneIl)
     })
+    await registraAttivita(utente, "consegna.gruppo", "ok", { gruppo: id, azione: letto.azione, bollettini: esito.piano.length })
     return NextResponse.json({ ok: true })
   } catch (errore) {
     const messaggio = messaggioDatabase(errore)

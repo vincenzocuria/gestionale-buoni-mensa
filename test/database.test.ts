@@ -81,7 +81,7 @@ test("migrazioni: idempotenti e registrate", { skip: saltaDb }, async () => {
   migra(db.urlAdmin)
   migra(db.urlAdmin)
   const versioni = await db.admin<{ versione: string }[]>`select versione from mensa.migrazioni order by versione`
-  assert.deepEqual(versioni.map((v) => v.versione), ["001_mensa"])
+  assert.deepEqual(versioni.map((v) => v.versione), ["001_mensa", "002_accesso_suite"])
 })
 
 test("schema: nomi e tipi delle colonne per l'importatore", { skip: saltaDb }, async () => {
@@ -115,9 +115,15 @@ test("schema: nomi e tipi delle colonne per l'importatore", { skip: saltaDb }, a
     "pagamenti.blocchetti_consegnati:integer",
     "pagamenti.anno_scolastico:text",
     "pagamenti.consegne_il:text",
-    "tentativi_accesso.ip:text",
-    "tentativi_accesso.tentativi:integer",
-    "tentativi_accesso.bloccato_fino_ms:bigint",
+    "registro_attivita.id:bigint",
+    "registro_attivita.ts:timestamp with time zone",
+    "registro_attivita.utente_id:text?",
+    "registro_attivita.email:text?",
+    "registro_attivita.azione:text",
+    "registro_attivita.esito:text",
+    "registro_attivita.dettagli:text",
+    "sso_usati.jti:text",
+    "sso_usati.scade:bigint",
   ])
 })
 
@@ -128,7 +134,7 @@ test("ruolo mensa_app: solo DML sullo schema mensa", { skip: saltaDb }, async ()
 
   await assert.rejects(db.sql`create table mensa.intrusa (id int)`, /permission denied/)
   await assert.rejects(db.sql`alter table pagamenti add column intrusa int`, /must be owner|permission denied/)
-  await assert.rejects(db.sql`drop table tentativi_accesso`, /must be owner|permission denied/)
+  await assert.rejects(db.sql`drop table registro_attivita`, /must be owner|permission denied/)
   await assert.rejects(db.sql`truncate pagamenti`, /permission denied/)
   await assert.rejects(db.sql`insert into migrazioni (versione) values ('999_intrusa')`, /permission denied/)
   await assert.rejects(db.sql`select mensa.compila_anno_scolastico()`, /permission denied/)

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { bloccaSeChiuso } from "@/lib/auth/guardia"
+import { richiediLettura } from "@/lib/auth/guardia"
 import { dbPronto, messaggioDatabase } from "@/lib/db/client"
 import { creaExcel } from "@/lib/export/excel"
 import { applicaVista, righeAnno } from "@/lib/export/leggi"
@@ -10,8 +10,8 @@ export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 export async function GET(request: Request) {
-  const blocco = bloccaSeChiuso(request)
-  if (blocco) return blocco
+  const utente = richiediLettura(request)
+  if (utente instanceof NextResponse) return utente
 
   const url = new URL(request.url)
   const anno = url.searchParams.get("anno") ?? ""

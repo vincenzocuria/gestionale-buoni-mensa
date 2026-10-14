@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
-import { esci } from "@/app/accesso/azioni"
 import { AzioniConsegna } from "@/components/azioni-consegna"
 import { AzioniConsegnaGruppo } from "@/components/azioni-consegna-gruppo"
 import { BarraStrumenti } from "@/components/barra-strumenti"
@@ -177,7 +176,7 @@ export function RegistroMensa() {
             Consegne dei blocchetti dell&apos;anno selezionato. Clicca un genitore per lo storico. Un nuovo export Siscom aggiorna solo i bollettini ancora aperti.
           </p>
         </MarchioComune>
-        <form action={esci}>
+        <form action="/api/accesso" method="post">
           <Button type="submit" variant="outline">
             Esci
           </Button>

@@ -69,7 +69,7 @@ export default function PrivacyPage() {
             <section>
               <h3 className="font-semibold text-lg mb-2">{"6. Modalità del trattamento e misure di sicurezza"}</h3>
               <p className="mb-2">{"I dati sono trattati con strumenti informatici, esclusivamente da personale del Comune autorizzato e istruito (art. 29 GDPR e art. 2-quaterdecies del D.Lgs. 196/2003), nel rispetto dei principi di liceità, correttezza, trasparenza, minimizzazione, esattezza e limitazione della conservazione (art. 5 GDPR)."}</p>
-              <p className="mb-2">{"Sono adottate misure tecniche e organizzative adeguate al rischio (art. 32 GDPR), tra cui: accesso all'applicazione riservato e protetto da password, connessioni cifrate (HTTPS), limitazione dei tentativi di accesso, intestazioni di sicurezza HTTP ed esclusione delle pagine dall'indicizzazione dei motori di ricerca."}</p>
+              <p className="mb-2">{"Sono adottate misure tecniche e organizzative adeguate al rischio (art. 32 GDPR), tra cui: accesso all'applicazione riservato agli utenti abilitati, solo tramite la Suite comunale con account personale e verifica in due passaggi, registro delle attività con l'utente che le ha svolte, connessioni cifrate (HTTPS), intestazioni di sicurezza HTTP ed esclusione delle pagine dall'indicizzazione dei motori di ricerca."}</p>
               <p className="mb-2">{"Non sono effettuati processi decisionali automatizzati, compresa la profilazione, di cui all'art. 22 GDPR."}</p>
             </section>
 
