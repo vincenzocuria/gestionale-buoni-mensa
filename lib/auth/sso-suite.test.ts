@@ -26,6 +26,23 @@ test("token della suite valido", () => {
   assert.equal(p.ruolo_modulo, "operatore")
 })
 
+test("token di un utente senza email: valido, con il nome utente", () => {
+  const p = verificaTokenSuite(token({ email: undefined, nome_utente: "mario.rossi" }), ADESSO, pubblica)
+  assert.ok(p)
+  assert.equal(p.nome_utente, "mario.rossi")
+  assert.equal(p.email, undefined)
+  assert.equal(verificaTokenSuite(token({ sub: "" }), ADESSO, pubblica), null, "senza sub no")
+  const precedente = process.env.MENSA_SESSION_SECRET
+  process.env.MENSA_SESSION_SECRET = "x".repeat(40)
+  try {
+    const s = creaTokenSessione({ sub: "u-2", nome_utente: "mario.rossi", nome: "Mario Rossi", ruolo_modulo: "lettura" })
+    assert.equal(leggiSessione(s)?.nome_utente, "mario.rossi")
+  } finally {
+    if (precedente == null) delete process.env.MENSA_SESSION_SECRET
+    else process.env.MENSA_SESSION_SECRET = precedente
+  }
+})
+
 test("token rifiutati: pubblico, emittente, scadenza, chiave, ruolo, formato", () => {
   assert.equal(verificaTokenSuite(token({ aud: "presenze" }), ADESSO, pubblica), null)
   assert.equal(verificaTokenSuite(token({ iss: "altro" }), ADESSO, pubblica), null)
