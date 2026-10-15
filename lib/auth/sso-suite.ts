@@ -12,7 +12,10 @@ export type PayloadSuite = {
   iss: string
   aud: string
   sub: string
-  email: string
+  // Il nome utente c'è sempre (le suite precedenti non lo mandavano); l'email solo
+  // per chi ce l'ha: alcuni dipendenti non hanno un indirizzo.
+  nome_utente?: string
+  email?: string
   nome: string
   ruolo: string
   ruolo_modulo: RuoloModulo
@@ -46,7 +49,7 @@ export function verificaTokenSuite(token: string, adessoMs = Date.now(), chiave?
     if (p.iss !== EMITTENTE || p.aud !== PUBBLICO) return null
     if (typeof p.exp !== "number" || p.exp < adesso) return null
     if (typeof p.nbf !== "number" || p.nbf > adesso + 5) return null
-    if (!p.jti || !p.sub || !p.email) return null
+    if (!p.jti || !p.sub) return null
     if (!["lettura", "operatore", "responsabile"].includes(p.ruolo_modulo)) return null
     return p
   } catch {

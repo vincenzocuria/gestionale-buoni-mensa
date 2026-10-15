@@ -4,14 +4,14 @@ import { getClient } from "@/lib/db/client"
 // Le tabelle sono create da db/migrazioni/002_accesso_suite.sql.
 
 export async function registraAttivita(
-  utente: { sub: string; email: string } | null,
+  utente: { sub: string; nome_utente?: string; email?: string } | null,
   azione: string,
   esito: "ok" | "negato" | "errore" = "ok",
   dettagli: Record<string, unknown> = {},
 ): Promise<void> {
   await getClient()`
     insert into registro_attivita (utente_id, email, azione, esito, dettagli)
-    values (${utente?.sub ?? null}, ${utente?.email ?? null}, ${azione}, ${esito}, ${JSON.stringify(dettagli)})`
+    values (${utente?.sub ?? null}, ${utente?.email ?? utente?.nome_utente ?? null}, ${azione}, ${esito}, ${JSON.stringify(dettagli)})`
 }
 
 // true se il token non era mai stato usato (e ora risulta usato).

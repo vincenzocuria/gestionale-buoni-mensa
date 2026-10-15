@@ -20,7 +20,7 @@ export async function GET(request: Request) {
       await registraAttivita(dati, "accesso.suite", "negato", { motivo: "token_gia_usato", jti: dati.jti })
       return NextResponse.redirect(destinazione(request, "/accesso?errore=link"), 303)
     }
-    const sessione = creaTokenSessione({ sub: dati.sub, email: dati.email, nome: dati.nome, ruolo_modulo: dati.ruolo_modulo })
+    const sessione = creaTokenSessione({ sub: dati.sub, nome_utente: dati.nome_utente, email: dati.email, nome: dati.nome, ruolo_modulo: dati.ruolo_modulo })
     await registraAttivita(dati, "accesso.suite", "ok", { jti: dati.jti, ruolo_modulo: dati.ruolo_modulo })
     const r = new URL(request.url).searchParams.get("r") ?? "/"
     const ritorno = r.startsWith("/") && !r.startsWith("//") && !r.startsWith("/\\") && !r.startsWith("/api/") ? r : "/"

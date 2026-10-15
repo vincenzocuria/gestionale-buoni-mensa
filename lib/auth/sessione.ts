@@ -9,7 +9,8 @@ export const DURATA_SECONDI = 8 * 60 * 60
 
 export type DatiSessione = {
   sub: string
-  email: string
+  nome_utente?: string
+  email?: string
   nome: string
   ruolo_modulo: RuoloModulo
   iat: number
@@ -52,7 +53,7 @@ export function leggiSessione(valore: string | undefined | null, adessoMs = Date
     if (attesa.length !== ricevuta.length || !timingSafeEqual(attesa, ricevuta)) return null
     const dati = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as DatiSessione
     if (typeof dati.exp !== "number" || typeof dati.iat !== "number" || dati.exp * 1000 < adessoMs) return null
-    if (!dati.sub || !dati.email) return null
+    if (!dati.sub) return null
     return dati
   } catch {
     return null

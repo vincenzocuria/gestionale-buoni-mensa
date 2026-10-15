@@ -8,7 +8,7 @@ export default async function Page() {
   // Il proxy garantisce già una sessione valida: qui serve solo per mostrare chi è collegato.
   const sessione = leggiSessione((await cookies()).get(NOME_COOKIE)?.value)
   const utente = {
-    nome: sessione?.nome || sessione?.email || "Utente",
+    nome: sessione?.nome || sessione?.nome_utente || sessione?.email || "Utente",
     solaLettura: sessione?.ruolo_modulo === "lettura",
   }
 
