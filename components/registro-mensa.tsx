@@ -2,18 +2,15 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
-import { esci } from "@/app/accesso/azioni"
 import { AzioniConsegna } from "@/components/azioni-consegna"
 import { AzioniConsegnaGruppo } from "@/components/azioni-consegna-gruppo"
 import { BarraStrumenti } from "@/components/barra-strumenti"
 import { ElencoPagamenti } from "@/components/elenco-pagamenti"
 import { FiltroPeriodo } from "@/components/filtro-periodo"
-import { MarchioComune } from "@/components/marchio-comune"
 import { ModalePersona } from "@/components/modale-persona"
 import { RiepilogoImport } from "@/components/riepilogo-import"
 import { SelettoreAnno } from "@/components/selettore-anno"
 import { StrisciaKpi } from "@/components/striscia-kpi"
-import { Button } from "@/components/ui/button"
 import { analizzaBlocchetti } from "@/lib/audit/gruppi"
 import { annoPredefinito, anniSelezionabili, righeDellAnno } from "@/lib/anno-scolastico/calcola"
 import { calcolaKpi } from "@/lib/pagamenti/kpi"
@@ -170,19 +167,12 @@ export function RegistroMensa() {
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-6 sm:px-6">
-      <header className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-5">
-        <MarchioComune>
-          <h1 className="mt-1 font-serif text-4xl tracking-tight">Buoni mensa</h1>
-          <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-            Consegne dei blocchetti dell&apos;anno selezionato. Clicca un genitore per lo storico. Un nuovo export Siscom aggiorna solo i bollettini ancora aperti.
-          </p>
-        </MarchioComune>
-        <form action={esci}>
-          <Button type="submit" variant="outline">
-            Esci
-          </Button>
-        </form>
-      </header>
+      <div className="border-b border-border pb-5">
+        <h1 className="font-serif text-3xl tracking-tight">Registro consegne</h1>
+        <p className="mt-1 max-w-xl text-sm text-muted-foreground">
+          Consegne dei blocchetti dell&apos;anno selezionato. Clicca un genitore per lo storico. Un nuovo export Siscom aggiorna solo i bollettini ancora aperti.
+        </p>
+      </div>
 
       <div className="mt-6 flex flex-col gap-4">
         {carico ? (

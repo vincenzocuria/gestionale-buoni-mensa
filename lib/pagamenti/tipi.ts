@@ -51,6 +51,7 @@ export type FiltroElenco =
   | "non_paganti"
   | "da_consegnare"
   | "consegnati"
+  | "anomalie"
 
 export type AzioneConsegna = "completa" | "parziale" | "annulla" | "modifica" | "rimuovi" | "registra"
 
@@ -73,6 +74,7 @@ export type Kpi = {
   blocchettiConsegnati: number
   incassatoCentesimi: number
   daIncassareCentesimi: number
+  anomalie: number
 }
 
 export type RiepilogoImport = {

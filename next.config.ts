@@ -1,7 +1,15 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["@libsql/client", "libsql"],
+  // Immagine Docker leggera per Coolify (node server.js).
+  output: "standalone",
+  serverExternalPackages: ["postgres"],
+  // Fissati alla build, per il footer: server, commit e ora della compilazione.
+  env: {
+    MENSA_SERVER: process.env.MENSA_SERVER ?? (process.env.VERCEL ? "vercel" : "locale"),
+    MENSA_VERSIONE: (process.env.MENSA_VERSIONE || process.env.VERCEL_GIT_COMMIT_SHA || "").slice(0, 7),
+    MENSA_COMPILATA: new Date().toISOString(),
+  },
   agentRules: false,
   allowedDevOrigins: ["127.0.0.1"],
   async headers() {

@@ -1,0 +1,101 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "postgres-*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verifica:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: admin-ci
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Dipendenze
+        run: npm ci
+
+      - name: Migrazioni, applicate due volte perché idempotenti
+        env:
+          MENSA_DATABASE_ADMIN_URL: postgres://postgres:admin-ci@localhost:5432/postgres
+          MENSA_APP_DB_PASSWORD: app-ci
+        run: |
+          npm run migra
+          npm run migra
+
+      - name: Lint
+        run: |
+          set +e
+          npm run lint > /tmp/lint.log 2>&1; esito=$?
+          cat /tmp/lint.log
+          # I log di Actions non sono leggibili dall'ambiente di sviluppo: gli errori diventano annotazioni.
+          if [ $esito -ne 0 ]; then grep -E -B2 "error|Error|✖" /tmp/lint.log | head -30 | sed 's/^/::error title=lint::/'; exit 1; fi
+
+      - name: Controllo dei tipi
+        run: |
+          set +e
+          npm run typecheck > /tmp/tsc.log 2>&1; esito=$?
+          cat /tmp/tsc.log
+          # I log di Actions non sono leggibili dall'ambiente di sviluppo: gli errori diventano annotazioni.
+          if [ $esito -ne 0 ]; then grep -E "error" /tmp/tsc.log | head -30 | sed 's/^/::error title=tsc::/'; exit 1; fi
+
+      - name: Test (unitari e database)
+        env:
+          TEST_DATABASE_ADMIN_URL: postgres://postgres:admin-ci@localhost:5432/postgres
+        run: |
+          set +e
+          npm test > /tmp/test.log 2>&1; esito=$?
+          cat /tmp/test.log
+          # I log di Actions non sono leggibili dall'ambiente di sviluppo: gli errori diventano annotazioni.
+          if [ $esito -ne 0 ]; then grep -E "not ok|Error|expected|actual|rror:" /tmp/test.log | head -30 | sed 's/^/::error title=test::/'; exit 1; fi
+
+      - name: Build
+        run: |
+          set +e
+          npm run build > /tmp/build.log 2>&1; esito=$?
+          cat /tmp/build.log
+          # I log di Actions non sono leggibili dall'ambiente di sviluppo: gli errori diventano annotazioni.
+          if [ $esito -ne 0 ]; then grep -E "rror|Failed|failed" /tmp/build.log | head -30 | sed 's/^/::error title=build::/'; exit 1; fi
+
+      - name: Prova del server standalone (/api/salute)
+        env:
+          MENSA_DATABASE_ADMIN_URL: postgres://postgres:admin-ci@localhost:5432/postgres
+          # I test reimpostano la password di mensa_app (il ruolo è unico nel server): la riallineo.
+          MENSA_APP_DB_PASSWORD: app-ci
+        run: |
+          npm run migra
+          cp -r public .next/standalone/
+          cp -r .next/static .next/standalone/.next/static
+          (cd .next/standalone && NODE_ENV=production PORT=3000 HOSTNAME=127.0.0.1 \
+            MENSA_DATABASE_URL=postgres://mensa_app:app-ci@localhost:5432/postgres \
+            MENSA_SESSION_SECRET=prova-ci-sessione-lunga-almeno-32-caratteri node server.js > /tmp/server.log 2>&1 &)
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:3000/api/salute && break; sleep 1; done
+          salute=$(curl -s http://127.0.0.1:3000/api/salute)
+          api=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/api/pagamenti)
+          echo "salute=$salute api=$api"
+          if ! echo "$salute" | grep -q '"ok"' || [ "$api" != "401" ]; then
+            echo "::error title=standalone::salute=$salute api=$api"
+            tail -n 20 /tmp/server.log | sed 's/^/::error title=server::/'
+            exit 1
+          fi
+
+      - name: Immagine Docker
+        run: docker build -t gestionale-buoni-mensa:ci .

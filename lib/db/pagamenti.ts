@@ -1,102 +1,56 @@
-import type { Client, Transaction } from "@libsql/client"
 import { scriviConsegne } from "@/lib/consegna/tempi"
-import { daRigaDb, parametriPagamento } from "@/lib/db/mappa-pagamento"
+import type { Esecutore } from "@/lib/db/client"
+import { COLONNE_PAGAMENTO, daRigaDb, rigaPagamento, type RigaDb } from "@/lib/db/mappa-pagamento"
 import type { Pagamento } from "@/lib/pagamenti/tipi"
 
-export type Esecutore = Pick<Client, "execute"> | Pick<Transaction, "execute">
+export type { Esecutore }
 
-const COLONNE = `
-  iuv, data_scadenza, data_pagamento, servizio, tipologia, importo_centesimi,
-  debitore, accertamento_anno, accertamento_numero, reversale_data, reversale_numero,
-  data_emissione, psp_riferimento, causale, cognome, nome, codice_fiscale,
-  tariffa_ridotta, blocchetti_dovuti, blocchetti_consegnati, anno_scolastico, consegne_il
-`
+const COLONNE_AGGIORNABILI = COLONNE_PAGAMENTO.filter((colonna) => colonna !== "iuv")
 
-const ORDINE = `
-  ORDER BY
-    CASE
-      WHEN data_pagamento IS NOT NULL AND blocchetti_consegnati < blocchetti_dovuti THEN 0
-      WHEN data_pagamento IS NULL THEN 1
-      ELSE 2
-    END,
-    COALESCE(data_pagamento, '') DESC,
-    debitore COLLATE NOCASE,
-    iuv
-`
-
+// Stesso ordine che dava SQLite:
+// - le stringhe si confrontano byte per byte (COLLATE "C" = BINARY di SQLite);
+// - "debitore COLLATE NOCASE" porta in minuscolo solo le lettere ASCII, come translate().
 export async function leggiTutti(db: Esecutore): Promise<Pagamento[]> {
-  const risultato = await db.execute(`SELECT ${COLONNE} FROM pagamenti ${ORDINE}`)
-  return risultato.rows.map((riga) => daRigaDb(riga))
+  const righe = await db<RigaDb[]>`
+    SELECT ${db(COLONNE_PAGAMENTO)} FROM pagamenti
+    ORDER BY
+      CASE
+        WHEN data_pagamento IS NOT NULL AND blocchetti_consegnati < blocchetti_dovuti THEN 0
+        WHEN data_pagamento IS NULL THEN 1
+        ELSE 2
+      END,
+      COALESCE(data_pagamento, '') COLLATE "C" DESC,
+      translate(debitore, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz') COLLATE "C",
+      iuv COLLATE "C"
+  `
+  return righe.map((riga) => daRigaDb(riga))
 }
 
-export async function leggiPerIuv(db: Esecutore, iuv: string): Promise<Pagamento | null> {
-  const risultato = await db.execute({
-    sql: `SELECT ${COLONNE} FROM pagamenti WHERE iuv = ?`,
-    args: [iuv],
-  })
-  const riga = risultato.rows[0]
+/**
+ * Con `perAggiornare` la riga resta bloccata fino alla fine della transazione:
+ * l'import non sovrascrive una consegna registrata nel frattempo.
+ */
+export async function leggiPerIuv(
+  db: Esecutore,
+  iuv: string,
+  opzioni: { perAggiornare?: boolean } = {},
+): Promise<Pagamento | null> {
+  const righe = opzioni.perAggiornare
+    ? await db<RigaDb[]>`SELECT ${db(COLONNE_PAGAMENTO)} FROM pagamenti WHERE iuv = ${iuv} FOR UPDATE`
+    : await db<RigaDb[]>`SELECT ${db(COLONNE_PAGAMENTO)} FROM pagamenti WHERE iuv = ${iuv}`
+  const riga = righe[0]
   return riga ? daRigaDb(riga) : null
 }
 
 export async function inserisci(db: Esecutore, pagamento: Pagamento): Promise<void> {
-  await db.execute({
-    sql: `INSERT INTO pagamenti (${COLONNE}) VALUES (${segnaposto(22)})`,
-    args: parametriPagamento(pagamento),
-  })
+  await db`INSERT INTO pagamenti ${db(rigaPagamento(pagamento), COLONNE_PAGAMENTO)}`
 }
 
 export async function aggiorna(db: Esecutore, pagamento: Pagamento): Promise<void> {
-  await db.execute({
-    sql: `
-      UPDATE pagamenti SET
-        data_scadenza = ?,
-        data_pagamento = ?,
-        servizio = ?,
-        tipologia = ?,
-        importo_centesimi = ?,
-        debitore = ?,
-        accertamento_anno = ?,
-        accertamento_numero = ?,
-        reversale_data = ?,
-        reversale_numero = ?,
-        data_emissione = ?,
-        psp_riferimento = ?,
-        causale = ?,
-        cognome = ?,
-        nome = ?,
-        codice_fiscale = ?,
-        tariffa_ridotta = ?,
-        blocchetti_dovuti = ?,
-        blocchetti_consegnati = ?,
-        anno_scolastico = ?,
-        consegne_il = ?
-      WHERE iuv = ?
-    `,
-    args: [
-      pagamento.dataScadenza,
-      pagamento.dataPagamento,
-      pagamento.servizio,
-      pagamento.tipologia,
-      pagamento.importoCentesimi,
-      pagamento.debitore,
-      pagamento.accertamentoAnno,
-      pagamento.accertamentoNumero,
-      pagamento.reversaleData,
-      pagamento.reversaleNumero,
-      pagamento.dataEmissione,
-      pagamento.pspRiferimento,
-      pagamento.causale,
-      pagamento.cognome,
-      pagamento.nome,
-      pagamento.codiceFiscale,
-      pagamento.tariffaRidotta ? 1 : 0,
-      pagamento.blocchettiDovuti,
-      pagamento.blocchettiConsegnati,
-      pagamento.annoScolastico,
-      scriviConsegne(pagamento.consegneIl),
-      pagamento.iuv,
-    ],
-  })
+  await db`
+    UPDATE pagamenti SET ${db(rigaPagamento(pagamento), COLONNE_AGGIORNABILI)}
+    WHERE iuv = ${pagamento.iuv}
+  `
 }
 
 export async function salvaConsegna(
@@ -105,12 +59,8 @@ export async function salvaConsegna(
   consegnati: number,
   consegneIl: string[],
 ): Promise<void> {
-  await db.execute({
-    sql: "UPDATE pagamenti SET blocchetti_consegnati = ?, consegne_il = ? WHERE iuv = ?",
-    args: [consegnati, scriviConsegne(consegneIl), iuv],
-  })
-}
-
-function segnaposto(n: number): string {
-  return Array.from({ length: n }, () => "?").join(", ")
+  await db`
+    UPDATE pagamenti SET blocchetti_consegnati = ${consegnati}, consegne_il = ${scriviConsegne(consegneIl)}
+    WHERE iuv = ${iuv}
+  `
 }

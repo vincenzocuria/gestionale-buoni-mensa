@@ -1,4 +1,5 @@
 import { conteggiBlocchetti } from "@/lib/audit/conteggi"
+import { analizzaBlocchetti } from "@/lib/audit/gruppi"
 import type { Kpi, RigaElenco } from "@/lib/pagamenti/tipi"
 
 export function calcolaKpi(righe: RigaElenco[]): Kpi {
@@ -27,5 +28,6 @@ export function calcolaKpi(righe: RigaElenco[]): Kpi {
     blocchettiConsegnati: libri.blocchettiConsegnati,
     incassatoCentesimi,
     daIncassareCentesimi,
+    anomalie: analizzaBlocchetti(righe).gruppi.filter((gruppo) => gruppo.esito === "anomalia").length,
   }
 }

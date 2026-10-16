@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { Newsreader, Source_Sans_3 } from "next/font/google"
 import { FooterPrivacy } from "@/components/footer-privacy"
 import "./globals.css"
+import "./barra-comune.css"
 
 const sans = Source_Sans_3({
   subsets: ["latin"],

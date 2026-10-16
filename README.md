@@ -4,17 +4,38 @@ Registro delle consegne dei blocchetti della mensa scolastica. L’export Siscom
 
 ## Ufficio
 
-Il sito è [https://mensa.vcuria.app](https://mensa.vcuria.app). I PC dell’ufficio lo aprono nel browser. I dati di produzione stanno su Turso, piano gratuito. L’app è su Vercel, già nel piano in uso: nessun altro servizio a pagamento.
+Il sito è [https://mensa.vcuria.app](https://mensa.vcuria.app). I PC dell’ufficio lo aprono nel browser.
 
-Sul DNS Cloudflare di `vcuria.app` serve solo un CNAME sull’host `mensa`, verso Vercel. Il record dell’apex `vcuria.app` non va modificato.
+L’app gira in un container Docker su Coolify (vedi `Dockerfile`: build standalone di Next.js, utente non root, porta 3000, controllo di salute su `/api/salute`). I dati stanno nel database PostgreSQL del Comune (istanza Supabase self-hosted), raggiunto in LAN: schema `mensa`, ruolo dedicato `mensa_app` che può solo leggere e scrivere le righe delle proprie tabelle.
 
-Variabili d’ambiente in produzione:
+Variabili d’ambiente del container:
 
-- `TURSO_DATABASE_URL`
-- `TURSO_AUTH_TOKEN`
-- `UFFICIO_PASSWORD`
+- `SUITE_URL` — indirizzo della Suite comunale (predefinito `https://suite.vcuria.app`)
+- `SUITE_SSO_PUBLIC_KEY` — chiave pubblica Ed25519 della suite, per verificare il collegamento di accesso
+- `MENSA_SESSION_SECRET` — segreto della sessione (almeno 32 caratteri casuali)
+- `MENSA_DATABASE_URL` — es. `postgres://mensa_app:PASSWORD@192.168.1.40:5432/postgres`
+- `MENSA_DATABASE_SSL` — facoltativa: `require` solo se il database è raggiunto da una rete non fidata
+- `MENSA_DATABASE_POOL` — facoltativa: connessioni massime (predefinito 5)
 
-La password non è nel codice. Senza `UFFICIO_PASSWORD` l’accesso resta chiuso.
+### Accesso
+
+Non c’è più una password dell’ufficio: ognuno entra dalla Suite comunale con il proprio account, se l’amministratore gli ha abilitato il modulo Mensa (Amministrazione → Utenti). La suite apre `/api/accesso/link` con un collegamento firmato e monouso (docs/SSO.md di suite-comune); Mensa crea una sessione personale di al massimo 8 ore e ogni 15 minuti ripassa dalla suite, così una disattivazione ha effetto subito. Con il ruolo «lettura» si consulta il registro ma non si registrano consegne né import. Accessi, consegne e import finiscono in `mensa.registro_attivita` con l’utente.
+
+Senza `SUITE_SSO_PUBLIC_KEY` o `MENSA_SESSION_SECRET` l’accesso resta chiuso. Senza `MENSA_DATABASE_URL` l’app risponde «Database non configurato».
+
+### Schema del database
+
+Lo schema non si crea all’avvio: si applicano le migrazioni in `db/migrazioni` con un utente amministratore, una volta e a ogni aggiornamento che ne aggiunge. Sono idempotenti.
+
+```bash
+MENSA_DATABASE_ADMIN_URL=postgres://postgres:...@192.168.1.40:5432/postgres \
+MENSA_APP_DB_PASSWORD=... \
+npm run migra
+```
+
+`MENSA_APP_DB_PASSWORD` imposta la password del ruolo `mensa_app` (la stessa da mettere in `MENSA_DATABASE_URL`). Dal container: `node scripts/migra.mjs` con le stesse variabili.
+
+Dopo aver copiato dati da un database precedente, `select mensa.compila_anno_scolastico();` (come amministratore) assegna l’anno scolastico ai bollettini che non lo hanno ancora, con la stessa regola dell’import.
 
 ## Avvio in locale
 
@@ -22,11 +43,15 @@ La password non è nel codice. Senza `UFFICIO_PASSWORD` l’accesso resta chiuso
 npm install
 ```
 
-Creare `.env.local` (non va committato) con la variabile `UFFICIO_PASSWORD`.
+Serve un PostgreSQL (16 o successivo). Creare `.env.local` (non va committato) partendo da `.env.example`, con `MENSA_DATABASE_URL`, `MENSA_SESSION_SECRET` e `SUITE_SSO_PUBLIC_KEY` (quella della suite locale: `npm run chiavi` in suite-comune), e applicare le migrazioni con `npm run migra` (con `MENSA_DATABASE_ADMIN_URL` e `MENSA_APP_DB_PASSWORD` nell’ambiente, come sopra).
 
-Se `TURSO_DATABASE_URL` e `TURSO_AUTH_TOKEN` non sono impostate, il database è il file `data/mensa.sqlite`.
+Per avere dei dati di prova, con un export in `data/StampaRicerca.csv` e il registro vuoto:
 
-Al primo avvio, se il database è vuoto e in `data/StampaRicerca.csv` c’è un export, quello viene importato. La cartella `data/` resta fuori da git: contiene codici fiscali.
+```bash
+MENSA_DATABASE_URL=... npm run sviluppo:importa
+```
+
+La cartella `data/` resta fuori da git: contiene codici fiscali.
 
 ```bash
 npm run dev
@@ -44,3 +69,14 @@ npm start
 ```
 
 Gli aggiornamenti successivi si fanno con il pulsante «Importa CSV».
+
+## Verifiche
+
+```bash
+npm run lint
+npm run typecheck
+TEST_DATABASE_ADMIN_URL=postgres://postgres:...@localhost:5432/postgres npm test
+npm run build
+```
+
+I test che usano il database creano un database usa e getta, vi applicano le migrazioni e si collegano come `mensa_app`; senza `TEST_DATABASE_ADMIN_URL` vengono saltati. In CI (`.github/workflows/ci.yml`) girano su un PostgreSQL 16 di servizio.

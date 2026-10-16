@@ -7,15 +7,18 @@
     "build": "next build",
     "start": "next start --hostname 0.0.0.0 --port 43123",
     "lint": "eslint",
-    "test": "tsx --test $(find lib -name '*.test.ts')"
+    "typecheck": "next typegen && tsc --noEmit",
+    "test": "tsx --test --test-concurrency=1 $(find lib test -name '*.test.ts')",
+    "migra": "node scripts/migra.mjs",
+    "sviluppo:importa": "tsx scripts/importa-se-vuoto.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
-    "@libsql/client": "^0.18.0",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.4.0",
     "lucide-react": "^1.49.0",
     "next": "16.3.8",
+    "postgres": "^3.4.7",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "shadcn": "^4.21.0",

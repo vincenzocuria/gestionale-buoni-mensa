@@ -1,11 +1,7 @@
 import assert from "node:assert/strict"
-import { mkdtempSync } from "node:fs"
-import { tmpdir } from "node:os"
-import path from "node:path"
-import test from "node:test"
+import test, { after, before } from "node:test"
+import { creaDatabaseTest, saltaDb, type DatabaseTest } from "../../test/db-test"
 import { applicaConsegna } from "../consegna/applica"
-import { SCHEMA_SQL } from "../db/schema"
-import { creaClientLocale } from "../db/client"
 import { leggiPerIuv, leggiTutti, salvaConsegna } from "../db/pagamenti"
 import { eseguiImport } from "../import/esegui-import"
 
@@ -16,11 +12,20 @@ function csv(righe: string[]): string {
   return [INTESTAZIONE, ...righe].join("\n")
 }
 
-test("il merge su sqlite non cancella, non azzera consegna e non pulisce la data", async () => {
-  const dir = mkdtempSync(path.join(tmpdir(), "mensa-"))
-  const client = creaClientLocale(path.join(dir, "mensa.sqlite"))
-  try {
-    await client.executeMultiple(SCHEMA_SQL)
+// Gira sul Postgres reale (TEST_DATABASE_ADMIN_URL), con il ruolo mensa_app.
+let db: DatabaseTest
+
+before(async () => {
+  if (!saltaDb) db = await creaDatabaseTest("import")
+})
+
+after(async () => {
+  if (!saltaDb) await db.chiudi()
+})
+
+test("il merge su postgres non cancella, non azzera consegna e non pulisce la data", { skip: saltaDb }, async () => {
+  const client = db.sql
+  {
     const primo = await eseguiImport(
       client,
       csv([
@@ -81,7 +86,5 @@ test("il merge su sqlite non cancella, non azzera consegna e non pulisce la data
     )
     assert.equal(ignorato.ignorati, 1)
     assert.equal((await leggiPerIuv(client, "200"))?.pspRiferimento, "PSP-B")
-  } finally {
-    client.close()
   }
 })

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
-import { bloccaSeChiuso } from "@/lib/auth/guardia"
+import { richiediScrittura } from "@/lib/auth/guardia"
+import { registraAttivita } from "@/lib/db/registro"
 import { applicaConsegna } from "@/lib/consegna/applica"
 import { applicaOrario } from "@/lib/consegna/modifica"
 import { leggiCorpoConsegna } from "@/lib/consegna/richiesta"
@@ -15,8 +16,8 @@ export async function POST(
   request: Request,
   contesto: { params: Promise<{ iuv: string }> },
 ) {
-  const blocco = bloccaSeChiuso(request)
-  if (blocco) return blocco
+  const utente = await richiediScrittura(request, "consegna")
+  if (utente instanceof NextResponse) return utente
 
   const { iuv: iuvGrezzo } = await contesto.params
   const iuv = decodeURIComponent(iuvGrezzo)
@@ -41,6 +42,7 @@ export async function POST(
     }
 
     await salvaConsegna(client, iuv, esito.record.blocchettiConsegnati, esito.record.consegneIl)
+    await registraAttivita(utente, "consegna", "ok", { iuv, azione: letto.azione, consegnati: esito.record.blocchettiConsegnati })
     return NextResponse.json({ riga: aVista(esito.record) })
   } catch (errore) {
     const messaggio = messaggioDatabase(errore)

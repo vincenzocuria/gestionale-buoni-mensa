@@ -1,8 +1,37 @@
-import type { Row } from "@libsql/client"
 import { leggiConsegne, scriviConsegne } from "@/lib/consegna/tempi"
 import type { Pagamento } from "@/lib/pagamenti/tipi"
 
-export function daRigaDb(row: Row): Pagamento {
+export type RigaDb = Record<string, unknown>
+
+/** Colonne di mensa.pagamenti, nello stesso ordine della tabella. */
+export const COLONNE_PAGAMENTO = [
+  "iuv",
+  "data_scadenza",
+  "data_pagamento",
+  "servizio",
+  "tipologia",
+  "importo_centesimi",
+  "debitore",
+  "accertamento_anno",
+  "accertamento_numero",
+  "reversale_data",
+  "reversale_numero",
+  "data_emissione",
+  "psp_riferimento",
+  "causale",
+  "cognome",
+  "nome",
+  "codice_fiscale",
+  "tariffa_ridotta",
+  "blocchetti_dovuti",
+  "blocchetti_consegnati",
+  "anno_scolastico",
+  "consegne_il",
+] as const
+
+export type ColonnaPagamento = (typeof COLONNE_PAGAMENTO)[number]
+
+export function daRigaDb(row: RigaDb): Pagamento {
   return {
     iuv: testo(row.iuv),
     dataScadenza: testoONull(row.data_scadenza),
@@ -29,31 +58,31 @@ export function daRigaDb(row: Row): Pagamento {
   }
 }
 
-export function parametriPagamento(pagamento: Pagamento): Array<string | number | null> {
-  return [
-    pagamento.iuv,
-    pagamento.dataScadenza,
-    pagamento.dataPagamento,
-    pagamento.servizio,
-    pagamento.tipologia,
-    pagamento.importoCentesimi,
-    pagamento.debitore,
-    pagamento.accertamentoAnno,
-    pagamento.accertamentoNumero,
-    pagamento.reversaleData,
-    pagamento.reversaleNumero,
-    pagamento.dataEmissione,
-    pagamento.pspRiferimento,
-    pagamento.causale,
-    pagamento.cognome,
-    pagamento.nome,
-    pagamento.codiceFiscale,
-    pagamento.tariffaRidotta ? 1 : 0,
-    pagamento.blocchettiDovuti,
-    pagamento.blocchettiConsegnati,
-    pagamento.annoScolastico,
-    scriviConsegne(pagamento.consegneIl),
-  ]
+export function rigaPagamento(pagamento: Pagamento): Record<ColonnaPagamento, string | number | null> {
+  return {
+    iuv: pagamento.iuv,
+    data_scadenza: pagamento.dataScadenza,
+    data_pagamento: pagamento.dataPagamento,
+    servizio: pagamento.servizio,
+    tipologia: pagamento.tipologia,
+    importo_centesimi: pagamento.importoCentesimi,
+    debitore: pagamento.debitore,
+    accertamento_anno: pagamento.accertamentoAnno,
+    accertamento_numero: pagamento.accertamentoNumero,
+    reversale_data: pagamento.reversaleData,
+    reversale_numero: pagamento.reversaleNumero,
+    data_emissione: pagamento.dataEmissione,
+    psp_riferimento: pagamento.pspRiferimento,
+    causale: pagamento.causale,
+    cognome: pagamento.cognome,
+    nome: pagamento.nome,
+    codice_fiscale: pagamento.codiceFiscale,
+    tariffa_ridotta: pagamento.tariffaRidotta ? 1 : 0,
+    blocchetti_dovuti: pagamento.blocchettiDovuti,
+    blocchetti_consegnati: pagamento.blocchettiConsegnati,
+    anno_scolastico: pagamento.annoScolastico,
+    consegne_il: scriviConsegne(pagamento.consegneIl),
+  }
 }
 
 function testo(valore: unknown): string {

@@ -1,3 +1,4 @@
+import { analizzaBlocchetti } from "@/lib/audit/gruppi"
 import type { FiltroElenco, RigaElenco } from "@/lib/pagamenti/tipi"
 
 export const FILTRI: { id: FiltroElenco; etichetta: string }[] = [
@@ -6,10 +7,17 @@ export const FILTRI: { id: FiltroElenco; etichetta: string }[] = [
   { id: "non_paganti", etichetta: "Non paganti" },
   { id: "da_consegnare", etichetta: "Da consegnare" },
   { id: "consegnati", etichetta: "Consegnati" },
+  { id: "anomalie", etichetta: "Anomalie" },
 ]
 
 export function filtraPagamenti(righe: RigaElenco[], filtro: FiltroElenco, ricerca: string): RigaElenco[] {
   const ago = ricerca.trim().toLowerCase().replace(/^'+/, "")
+  if (filtro === "anomalie") {
+    const analisi = analizzaBlocchetti(righe)
+    return righe.filter(
+      (riga) => analisi.perIuv.get(riga.iuv)?.esito === "anomalia" && corrispondeRicerca(riga, ago),
+    )
+  }
   return righe.filter((riga) => corrispondeFiltro(riga, filtro) && corrispondeRicerca(riga, ago))
 }
 
