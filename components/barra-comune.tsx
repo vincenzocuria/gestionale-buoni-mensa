@@ -64,6 +64,12 @@ export function BarraComune({ utente, suiteUrl }: { utente?: Utente; suiteUrl?: 
                   {utente.solaLettura ? <> <small>· sola lettura</small></> : null}
                 </span>
                 {suiteUrl ? (
+                  <a className="sc-pulsante" href={`${suiteUrl.replace(/\/$/, "")}/profilo?da=mensa`} title="Il tuo profilo: email, password, verifica in due passaggi">
+                    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" strokeWidth="2" /><path d="M4 20c0-4 4-6 8-6s8 2 8 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
+                    Profilo
+                  </a>
+                ) : null}
+                {suiteUrl ? (
                   <a className="sc-pulsante" href={suiteUrl}>
                     <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
                       <path
