@@ -15,7 +15,7 @@ import { analizzaBlocchetti } from "@/lib/audit/gruppi"
 import { annoPredefinito, anniSelezionabili, righeDellAnno } from "@/lib/anno-scolastico/calcola"
 import { calcolaKpi } from "@/lib/pagamenti/kpi"
 import { filtraPeriodo, oggiLocale, PERIODO_VUOTO, type Periodo } from "@/lib/pagamenti/periodo"
-import { alternaOrdine, ordinaVoci, type OrdineElenco } from "@/lib/pagamenti/ordina"
+import { alternaOrdine, ORDINE_PREDEFINITO, ordinaVoci, type OrdineElenco } from "@/lib/pagamenti/ordina"
 import { slicePagina } from "@/lib/pagamenti/pagina"
 import { storicoPersona } from "@/lib/pagamenti/storico"
 import { compattaElenco, contaFiltri, filtraVoci } from "@/lib/pagamenti/voci"
@@ -37,7 +37,7 @@ export function RegistroMensa() {
   const [oggi] = useState(oggiLocale)
   const [ricerca, setRicerca] = useState("")
   const [pagina, setPagina] = useState(1)
-  const [ordine, setOrdine] = useState<OrdineElenco | null>(null)
+  const [ordine, setOrdine] = useState<OrdineElenco>(ORDINE_PREDEFINITO)
   const [pendingGruppo, setPendingGruppo] = useState<string | null>(null)
   const [personaAperta, setPersonaAperta] = useState<string | null>(null)
   const [riepilogo, setRiepilogo] = useState<Riepilogo | null>(null)
