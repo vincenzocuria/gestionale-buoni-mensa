@@ -37,7 +37,7 @@ export function alternaOrdine(attuale: OrdineElenco | null, colonna: ColonnaElen
 // Ordine di partenza della tabella: data di pagamento, dalla più recente.
 export const ORDINE_PREDEFINITO: OrdineElenco = { colonna: "pagamento", verso: "desc" }
 
-// I «Da consegnare» stanno sempre in cima (secondo lo stato della voce intera,
+// I «Da consegnare» e le anomalie stanno sempre in cima (secondo lo stato della voce intera,
 // gruppi compresi); dentro ciascuna fascia vale la colonna scelta. A parità si
 // usano debitore e IUV, così l'ordine non dipende da come arrivano le righe.
 // Solo ordinando per Stato la fascia la decide la colonna stessa.
@@ -53,6 +53,9 @@ export function ordinaVoci(voci: VoceElenco[], ordine: OrdineElenco | null): Voc
 }
 
 function fascia(voce: VoceElenco): number {
+  // Anche le anomalie restano in cima finché non si chiariscono,
+  // pure quando i blocchetti interi sono già stati consegnati.
+  if (voce.tipo === "gruppo" && voce.gruppo.esito === "anomalia") return 0
   return statoVoce(voce) === "da_consegnare" ? 0 : 1
 }
 
