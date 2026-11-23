@@ -12,6 +12,7 @@ export function Paginazione({
   onPagina,
   perPagina,
   onPerPagina,
+  sopra = false,
 }: {
   pagina: number
   pagine: number
@@ -21,9 +22,11 @@ export function Paginazione({
   onPagina: (pagina: number) => void
   perPagina: number
   onPerPagina: (quante: number) => void
+  /** Copia sopra la tabella: margine sotto invece che sopra. */
+  sopra?: boolean
 }) {
   return (
-    <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+    <div className={`${sopra ? "mb-3" : "mt-3"} flex flex-wrap items-center justify-between gap-2`}>
       <div className="flex flex-wrap items-center gap-3">
         <p className="text-sm text-muted-foreground">
           {totale === 0 ? "Nessun bollettino" : `${dal}–${al} di ${totale}`}
@@ -44,7 +47,7 @@ export function Paginazione({
         </label>
       </div>
       {pagine > 1 ? (
-        <div className="flex items-center gap-2" role="navigation" aria-label="Pagine">
+        <div className="flex items-center gap-2" role="navigation" aria-label={sopra ? "Pagine (sopra)" : "Pagine"}>
           <Button type="button" size="sm" variant="outline" disabled={pagina <= 1} onClick={() => onPagina(pagina - 1)}>
             Precedente
           </Button>

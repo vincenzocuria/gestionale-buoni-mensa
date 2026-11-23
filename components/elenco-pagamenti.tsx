@@ -89,6 +89,17 @@ export function ElencoPagamenti({
 
   return (
     <div>
+      <Paginazione
+        sopra
+        pagina={pagina}
+        pagine={pagine}
+        dal={dal}
+        al={al}
+        totale={filtrati}
+        onPagina={onPagina}
+        perPagina={perPagina}
+        onPerPagina={onPerPagina}
+      />
       <div className="mb-3 flex flex-wrap gap-1 md:hidden" role="group" aria-label="Ordina elenco">
         {COLONNE_ELENCO.map((colonna) => {
           const attiva = ordine?.colonna === colonna.id
