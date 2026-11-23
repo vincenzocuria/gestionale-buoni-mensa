@@ -33,7 +33,7 @@ export async function POST(request: Request) {
     const esito =
       letto.azione === "modifica" || letto.azione === "rimuovi" || letto.azione === "registra"
         ? pianoOrarioGruppo(gruppo, letto.azione, letto.indice, letto.quando)
-        : { ok: true as const, piano: pianoConsegnaGruppo(gruppo, letto.azione, adessoLocale()) }
+        : { ok: true as const, piano: pianoConsegnaGruppo(gruppo, letto.azione, adessoLocale(), letto.quanti) }
     if (!esito.ok) return NextResponse.json({ errore: esito.messaggio }, { status: 409 })
 
     await client.begin(async (transazione) => {

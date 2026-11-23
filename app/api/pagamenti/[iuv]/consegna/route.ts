@@ -36,7 +36,7 @@ export async function POST(
     const esito =
       letto.azione === "modifica" || letto.azione === "rimuovi" || letto.azione === "registra"
         ? applicaOrario(pagamento, letto.azione, letto.indice, letto.quando)
-        : applicaConsegna(pagamento, letto.azione, adessoLocale())
+        : applicaConsegna(pagamento, letto.azione, adessoLocale(), letto.quanti)
     if (!esito.ok) {
       return NextResponse.json({ errore: esito.messaggio }, { status: 409 })
     }
