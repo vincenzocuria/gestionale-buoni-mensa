@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react"
 import { useRouter } from "next/navigation"
 import { AzioniConsegna } from "@/components/azioni-consegna"
 import { AzioniConsegnaGruppo } from "@/components/azioni-consegna-gruppo"
@@ -16,7 +16,7 @@ import { annoPredefinito, anniSelezionabili, righeDellAnno } from "@/lib/anno-sc
 import { calcolaKpi } from "@/lib/pagamenti/kpi"
 import { filtraPeriodo, oggiLocale, PERIODO_VUOTO, type Periodo } from "@/lib/pagamenti/periodo"
 import { alternaOrdine, ORDINE_PREDEFINITO, ordinaVoci, type OrdineElenco } from "@/lib/pagamenti/ordina"
-import { slicePagina } from "@/lib/pagamenti/pagina"
+import { PER_PAGINA, SCELTE_PER_PAGINA, slicePagina } from "@/lib/pagamenti/pagina"
 import { storicoPersona } from "@/lib/pagamenti/storico"
 import { compattaElenco, contaFiltri, filtraVoci } from "@/lib/pagamenti/voci"
 import type { AzioneConsegna, DettaglioConsegna, FiltroElenco, Kpi, RigaElenco, RiepilogoImport as Riepilogo } from "@/lib/pagamenti/tipi"
@@ -24,6 +24,21 @@ import type { AzioneConsegna, DettaglioConsegna, FiltroElenco, Kpi, RigaElenco, 
 type Carico = {
   righe: RigaElenco[]
   kpi: Kpi
+}
+
+const CHIAVE_PER_PAGINA = "mensa.righePerPagina"
+
+function perPaginaSalvato(): number | null {
+  try {
+    const valore = Number(localStorage.getItem(CHIAVE_PER_PAGINA))
+    return (SCELTE_PER_PAGINA as readonly number[]).includes(valore) ? valore : null
+  } catch {
+    return null
+  }
+}
+
+function nessunaIscrizione(): () => void {
+  return () => {}
 }
 
 export function RegistroMensa() {
@@ -37,6 +52,10 @@ export function RegistroMensa() {
   const [oggi] = useState(oggiLocale)
   const [ricerca, setRicerca] = useState("")
   const [pagina, setPagina] = useState(1)
+  // Righe per pagina: la scelta di questa visita, altrimenti quella salvata su questo browser.
+  const [sceltaPerPagina, setPerPagina] = useState<number | null>(null)
+  const salvatoPerPagina = useSyncExternalStore(nessunaIscrizione, perPaginaSalvato, () => null)
+  const perPagina = sceltaPerPagina ?? salvatoPerPagina ?? PER_PAGINA
   const [ordine, setOrdine] = useState<OrdineElenco>(ORDINE_PREDEFINITO)
   const [pendingGruppo, setPendingGruppo] = useState<string | null>(null)
   const [personaAperta, setPersonaAperta] = useState<string | null>(null)
@@ -86,7 +105,7 @@ export function RegistroMensa() {
   const visibili = useMemo(() => filtraVoci(nelPeriodo, filtro, ricerca), [nelPeriodo, filtro, ricerca])
   const ordinate = useMemo(() => ordinaVoci(visibili, ordine), [visibili, ordine])
   const conteggi = useMemo(() => contaFiltri(nelPeriodo, ricerca), [nelPeriodo, ricerca])
-  const paginati = useMemo(() => slicePagina(ordinate, pagina), [ordinate, pagina])
+  const paginati = useMemo(() => slicePagina(ordinate, pagina, perPagina), [ordinate, pagina, perPagina])
   const storico = useMemo(
     () => (personaAperta && carico ? storicoPersona(carico.righe, personaAperta) : null),
     [personaAperta, carico],
@@ -233,6 +252,16 @@ export function RegistroMensa() {
           dal={paginati.dal}
           al={paginati.al}
           onPagina={setPagina}
+          perPagina={perPagina}
+          onPerPagina={(quante) => {
+            setPerPagina(quante)
+            setPagina(1)
+            try {
+              localStorage.setItem(CHIAVE_PER_PAGINA, String(quante))
+            } catch {
+              // Senza memoria del browser vale solo per questa visita.
+            }
+          }}
           filtro={filtro}
           ricerca={ricerca}
           caricamento={caricamento}
