@@ -7,6 +7,7 @@ const VOCI: { chiave: keyof Riepilogo; etichetta: string }[] = [
   { chiave: "invariati", etichetta: "Invariati" },
   { chiave: "esclusiTest", etichetta: "Esclusi test" },
   { chiave: "fuoriPeriodo", etichetta: "Prima di settembre 2026" },
+  { chiave: "altriServizi", etichetta: "Altri servizi (non mensa)" },
 ]
 
 export function RiepilogoImport({ riepilogo }: { riepilogo: Riepilogo }) {
