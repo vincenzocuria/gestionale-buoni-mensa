@@ -101,3 +101,16 @@ test("senza scelta: prima i da consegnare (anche i gruppi), poi il resto dal pag
     ["b", "c", "g-da-consegnare", "a", "g-consegnato", "n"],
   )
 })
+
+test("un'anomalia resta in cima anche dopo la consegna dei blocchetti interi", () => {
+  const anomalia = gruppo("g-anomalia", "BARBIERI RITA", 2, [
+    riga({ iuv: "b1", debitore: "BARBIERI RITA", dataPagamento: "2026-11-10", stato: "consegnato" }),
+  ])
+  if (anomalia.tipo === "gruppo") {
+    anomalia.gruppo.esito = "anomalia"
+    anomalia.gruppo.blocchetti = 2
+    anomalia.gruppo.residuoCentesimi = 2000
+  }
+  const voci = [riga({ iuv: "z", debitore: "ZETA", dataPagamento: "2026-11-20", stato: "consegnato" }), anomalia]
+  assert.deepEqual(ordinaVoci(voci, null).map((voce) => voce.id), ["g-anomalia", "z"])
+})
