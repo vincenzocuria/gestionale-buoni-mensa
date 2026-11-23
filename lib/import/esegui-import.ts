@@ -12,6 +12,7 @@ export async function eseguiImport(client: Sql, csv: string): Promise<RiepilogoI
   const riepilogo = riepilogoVuoto()
   riepilogo.righeLette = lettura.righeLette
   riepilogo.errori = lettura.errori
+  riepilogo.altriServizi = lettura.altriServizi
 
   await client.begin(async (transazione) => {
     // Un import alla volta (come il lock di scrittura di SQLite): due import

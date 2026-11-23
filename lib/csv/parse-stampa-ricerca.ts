@@ -1,6 +1,7 @@
 import { ErroreCsv } from "@/lib/csv/errore-csv"
 import { leggiCsvSemicolon } from "@/lib/csv/leggi-semicolon"
 import { parseDataSiscom, parseImportoCentesimi, senzaApiceIniziale } from "@/lib/csv/valori"
+import { eRigaMensa } from "@/lib/import/riga-mensa"
 import type { RigaSiscom } from "@/lib/pagamenti/tipi"
 
 const COLONNE = [
@@ -24,6 +25,8 @@ export type LetturaCsv = {
   righe: RigaSiscom[]
   errori: string[]
   righeLette: number
+  /** Righe di altri servizi (acquedotto, carta d'identità...): non entrano nel registro. */
+  altriServizi: number
 }
 
 export function parseStampaRicerca(testo: string): LetturaCsv {
@@ -41,6 +44,7 @@ export function parseStampaRicerca(testo: string): LetturaCsv {
   const indice = new Map(intestazioni.map((nome, posizione) => [nome, posizione]))
   const righe: RigaSiscom[] = []
   const errori: string[] = []
+  let altriServizi = 0
 
   for (let i = 1; i < tabella.length; i++) {
     const celle = tabella[i]
@@ -49,6 +53,13 @@ export function parseStampaRicerca(testo: string): LetturaCsv {
       const posizione = indice.get(nome)
       if (posizione == null) return ""
       return (celle[posizione] ?? "").trim()
+    }
+
+    if (celle.every((valore) => valore.trim() === "")) continue
+
+    if (!eRigaMensa({ servizio: cella("Servizio"), causale: cella("Causale Pagamento") })) {
+      altriServizi += 1
+      continue
     }
 
     const iuv = senzaApiceIniziale(cella("IUV"))
@@ -112,5 +123,5 @@ export function parseStampaRicerca(testo: string): LetturaCsv {
     })
   }
 
-  return { righe, errori, righeLette: tabella.length - 1 }
+  return { righe, errori, righeLette: tabella.length - 1, altriServizi }
 }

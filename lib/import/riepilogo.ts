@@ -8,6 +8,7 @@ export function riepilogoVuoto(): RiepilogoImport {
     invariati: 0,
     esclusiTest: 0,
     fuoriPeriodo: 0,
+    altriServizi: 0,
     righeLette: 0,
     errori: [],
   }

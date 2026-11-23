@@ -84,6 +84,7 @@ export type RiepilogoImport = {
   invariati: number
   esclusiTest: number
   fuoriPeriodo: number
+  altriServizi: number
   righeLette: number
   errori: string[]
 }
