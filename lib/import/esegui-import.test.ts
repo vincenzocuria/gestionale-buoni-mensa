@@ -88,3 +88,23 @@ test("il merge su postgres non cancella, non azzera consegna e non pulisce la da
     assert.equal((await leggiPerIuv(client, "200"))?.pspRiferimento, "PSP-B")
   }
 })
+
+test("la mensa pagata su un altro servizio non entra ma si segnala", { skip: saltaDb }, async () => {
+  const client = db.sql
+  const riepilogo = await eseguiImport(
+    client,
+    csv([
+      "09/11/2026;10/10/2026 16:34:00;DIRITTI VARI;;40,00;CURCI ERMINIA;2026;83;;;10/10/2026;'900;;Mensa scolastica Arone Francesco;CURCI;ERMINIA;FFF",
+      "05/06/2026;06/05/2026 12:57:00;DIRITTI VARI;;40,00;CURCI ERMINIA;2025;348;;;06/05/2026;'901;;Buoni mensa ARONE FRANCESCO;CURCI;ERMINIA;FFF",
+      "29/05/2027;22/11/2026 13:59:00;ACQUEDOTTO;;78,01;ACETO VITTORIA;2025;362;;;08/07/2026;'902;;Acquedotto 2025;ACETO;VITTORIA;GGG",
+    ]),
+  )
+  assert.equal(riepilogo.nuovi, 0)
+  assert.equal(riepilogo.altriServizi, 1)
+  assert.deepEqual(
+    riepilogo.mensaSuAltroServizio.map((caso) => [caso.iuv, caso.importoCentesimi, caso.debitore]),
+    [["900", 4000, "CURCI ERMINIA"]],
+  )
+  assert.equal(await leggiPerIuv(client, "900"), null)
+  assert.equal(await leggiPerIuv(client, "902"), null)
+})

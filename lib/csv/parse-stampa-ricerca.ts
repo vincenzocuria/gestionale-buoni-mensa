@@ -1,7 +1,7 @@
 import { ErroreCsv } from "@/lib/csv/errore-csv"
 import { leggiCsvSemicolon } from "@/lib/csv/leggi-semicolon"
 import { parseDataSiscom, parseImportoCentesimi, senzaApiceIniziale } from "@/lib/csv/valori"
-import { eRigaMensa } from "@/lib/import/riga-mensa"
+import { classificaRiga } from "@/lib/import/riga-mensa"
 import type { RigaSiscom } from "@/lib/pagamenti/tipi"
 
 const COLONNE = [
@@ -27,6 +27,8 @@ export type LetturaCsv = {
   righeLette: number
   /** Righe di altri servizi (acquedotto, carta d'identità...): non entrano nel registro. */
   altriServizi: number
+  /** Pagamenti di un altro servizio con «mensa» nella causale: non entrano, si segnalano. */
+  mensaSuAltroServizio: { numero: number; riga: RigaSiscom }[]
 }
 
 export function parseStampaRicerca(testo: string): LetturaCsv {
@@ -45,6 +47,7 @@ export function parseStampaRicerca(testo: string): LetturaCsv {
   const righe: RigaSiscom[] = []
   const errori: string[] = []
   let altriServizi = 0
+  const mensaSuAltroServizio: { numero: number; riga: RigaSiscom }[] = []
 
   for (let i = 1; i < tabella.length; i++) {
     const celle = tabella[i]
@@ -57,7 +60,8 @@ export function parseStampaRicerca(testo: string): LetturaCsv {
 
     if (celle.every((valore) => valore.trim() === "")) continue
 
-    if (!eRigaMensa({ servizio: cella("Servizio"), causale: cella("Causale Pagamento") })) {
+    const classe = classificaRiga({ servizio: cella("Servizio"), causale: cella("Causale Pagamento") })
+    if (classe === "altro_servizio") {
       altriServizi += 1
       continue
     }
@@ -102,7 +106,7 @@ export function parseStampaRicerca(testo: string): LetturaCsv {
       continue
     }
 
-    righe.push({
+    const riga: RigaSiscom = {
       iuv,
       dataScadenza,
       dataPagamento,
@@ -120,8 +124,10 @@ export function parseStampaRicerca(testo: string): LetturaCsv {
       cognome: cella("Cognome"),
       nome: cella("Nome"),
       codiceFiscale: senzaApiceIniziale(cella("Cod Fiscale")),
-    })
+    }
+    if (classe === "mensa_su_altro_servizio") mensaSuAltroServizio.push({ numero, riga })
+    else righe.push(riga)
   }
 
-  return { righe, errori, righeLette: tabella.length - 1, altriServizi }
+  return { righe, errori, righeLette: tabella.length - 1, altriServizi, mensaSuAltroServizio }
 }

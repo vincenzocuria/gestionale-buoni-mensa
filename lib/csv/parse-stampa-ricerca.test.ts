@@ -21,7 +21,7 @@ test("rifiuta un CSV senza le colonne Siscom", () => {
   assert.throws(() => parseStampaRicerca("Nome;Cognome\nA;B"), ErroreCsv)
 })
 
-test("tiene solo i pagamenti della mensa, anche quelli emessi come diritti vari", () => {
+test("tiene solo il servizio mensa e mette da parte la mensa pagata su altri servizi", () => {
   const csv = `${INTESTAZIONE}
 16/10/2026;01/10/2026 08:12:00;MENSE SCOLASTICHE;;40,00;ROSSI MARIO;2026;83;;;01/10/2026;'1;;Mensa Scolastica;ROSSI;MARIO;AAA
 29/05/2027;22/11/2026 13:59:00;ACQUEDOTTO;;78,01;ACETO VITTORIA;2025;362;;;08/07/2026;'2;;Acquedotto 2025 - Avviso N. 59;ACETO;VITTORIA;BBB
@@ -32,9 +32,26 @@ test("tiene solo i pagamenti della mensa, anche quelli emessi come diritti vari"
   const lettura = parseStampaRicerca(csv)
   assert.deepEqual(
     lettura.righe.map((riga) => riga.iuv),
-    ["1", "4", "5"],
+    ["1"],
+  )
+  assert.deepEqual(
+    lettura.mensaSuAltroServizio.map(({ numero, riga }) => [numero, riga.iuv, riga.servizio]),
+    [
+      [5, "4", "DIRITTI VARI"],
+      [6, "5", "DIRITTI VARI"],
+    ],
   )
   assert.equal(lettura.altriServizi, 3)
   assert.equal(lettura.righeLette, 6)
   assert.deepEqual(lettura.errori, [])
+})
+
+test("export senza la colonna Servizio: decide la causale", () => {
+  const csv = `Data scadenza;Data Pagamento;Importo;Debitore;Accertamento anno;Accertamento numero;Reversale data;Reversale numero;IUV;PspRiferimento;Causale Pagamento;Cognome;Nome;Cod Fiscale
+16/10/2026;01/10/2026;40,00;ROSSI MARIO;2026;83;;;'1;;Mensa Scolastica;ROSSI;MARIO;AAA
+16/10/2026;01/10/2026;78,00;ROSSI MARIO;2026;83;;;'2;;Acquedotto 2025;ROSSI;MARIO;AAA`
+  const lettura = parseStampaRicerca(csv)
+  assert.deepEqual(lettura.righe.map((riga) => riga.iuv), ["1"])
+  assert.equal(lettura.altriServizi, 1)
+  assert.equal(lettura.mensaSuAltroServizio.length, 0)
 })

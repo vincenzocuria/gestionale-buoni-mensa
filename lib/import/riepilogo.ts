@@ -11,6 +11,7 @@ export function riepilogoVuoto(): RiepilogoImport {
     altriServizi: 0,
     righeLette: 0,
     errori: [],
+    mensaSuAltroServizio: [],
   }
 }
 
