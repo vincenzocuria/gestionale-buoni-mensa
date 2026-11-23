@@ -114,3 +114,12 @@ test("un'anomalia resta in cima anche dopo la consegna dei blocchetti interi", (
   const voci = [riga({ iuv: "z", debitore: "ZETA", dataPagamento: "2026-11-20", stato: "consegnato" }), anomalia]
   assert.deepEqual(ordinaVoci(voci, null).map((voce) => voce.id), ["g-anomalia", "z"])
 })
+
+test("anche ordinando per Stato i da consegnare restano in cima", () => {
+  const voci = [
+    riga({ iuv: "c", debitore: "CARLO", stato: "consegnato" }),
+    riga({ iuv: "d", debitore: "DORA", stato: "da_consegnare" }),
+  ]
+  assert.equal(ordinaVoci(voci, { colonna: "stato", verso: "asc" })[0].id, "d")
+  assert.equal(ordinaVoci(voci, { colonna: "stato", verso: "desc" })[0].id, "d")
+})

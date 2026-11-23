@@ -24,6 +24,8 @@ export function ElencoPagamenti({
   dal,
   al,
   onPagina,
+  perPagina,
+  onPerPagina,
   filtro,
   ricerca,
   caricamento,
@@ -44,6 +46,8 @@ export function ElencoPagamenti({
   dal: number
   al: number
   onPagina: (pagina: number) => void
+  perPagina: number
+  onPerPagina: (quante: number) => void
   filtro: FiltroElenco
   ricerca: string
   caricamento: boolean
@@ -207,7 +211,7 @@ export function ElencoPagamenti({
           ),
         )}
       </ul>
-      <Paginazione pagina={pagina} pagine={pagine} dal={dal} al={al} totale={filtrati} onPagina={onPagina} />
+      <Paginazione pagina={pagina} pagine={pagine} dal={dal} al={al} totale={filtrati} onPagina={onPagina} perPagina={perPagina} onPerPagina={onPerPagina} />
     </div>
   )
 }

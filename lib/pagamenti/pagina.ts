@@ -1,4 +1,5 @@
 export const PER_PAGINA = 25
+export const SCELTE_PER_PAGINA = [25, 50, 100, 200] as const
 
 export function slicePagina<T>(righe: T[], pagina: number, perPagina = PER_PAGINA): {
   voci: T[]

@@ -40,12 +40,11 @@ export const ORDINE_PREDEFINITO: OrdineElenco = { colonna: "pagamento", verso: "
 // I «Da consegnare» e le anomalie stanno sempre in cima (secondo lo stato della voce intera,
 // gruppi compresi); dentro ciascuna fascia vale la colonna scelta. A parità si
 // usano debitore e IUV, così l'ordine non dipende da come arrivano le righe.
-// Solo ordinando per Stato la fascia la decide la colonna stessa.
 export function ordinaVoci(voci: VoceElenco[], ordine: OrdineElenco | null): VoceElenco[] {
   const scelto = ordine ?? ORDINE_PREDEFINITO
   return [...voci].sort(
     (a, b) =>
-      (scelto.colonna === "stato" ? 0 : fascia(a) - fascia(b)) ||
+      fascia(a) - fascia(b) ||
       confronta(a, b, scelto) ||
       confronta(a, b, { colonna: "debitore", verso: "asc" }) ||
       confronta(a, b, { colonna: "iuv", verso: "asc" }),
