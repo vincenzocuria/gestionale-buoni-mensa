@@ -65,7 +65,6 @@ function contaBlocchetti(voci: VoceElenco[], analisi: AnalisiAudit): { dovuti: n
       consegnati += Math.min(n, voce.riga.blocchettiConsegnati)
       continue
     }
-    if (voce.gruppo.esito !== "accorpato") continue
     dovuti += voce.gruppo.blocchetti
     consegnati += voce.gruppo.consegnati
   }

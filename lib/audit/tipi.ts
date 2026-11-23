@@ -22,6 +22,8 @@ export type GruppoAudit = {
   sommaCentesimi: number
   blocchetti: number
   consegnati: number
+  /** Solo per le anomalie: la parte dell'importo che non fa un blocchetto intero. */
+  residuoCentesimi: number
   testo: string
 }
 

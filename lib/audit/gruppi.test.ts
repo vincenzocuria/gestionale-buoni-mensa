@@ -85,3 +85,28 @@ test("la consegna del gruppo segna i blocchetti una sola volta", () => {
     { iuv: "11", consegnati: 0, consegneIl: [] },
   ])
 })
+
+test("100 euro: anomalia con 2 blocchetti consegnabili e 20 euro da chiarire", () => {
+  const righe = [riga({ iuv: "28", importoCentesimi: 10000, debitore: "BARBIERI RITA", codiceFiscale: "BRB" })]
+  const analisi = analizzaBlocchetti(righe)
+  const gruppo = analisi.gruppi[0]
+  assert.equal(gruppo.esito, "anomalia")
+  assert.equal(gruppo.blocchetti, 2)
+  assert.equal(gruppo.residuoCentesimi, 2000)
+  assert.match(gruppo.testo, /2 blocchetti consegnabili, restano 20,00\s€ da chiarire/)
+  assert.equal(conteggiBlocchetti(righe).blocchettiDaConsegnare, 2)
+
+  const piano = pianoConsegnaGruppo(gruppo, "completa", "2026-11-23T10:30:00")
+  assert.deepEqual(piano.map((voce) => [voce.iuv, voce.consegnati]), [["28", 2]])
+  const dopo = analizzaBlocchetti([{ ...righe[0], blocchettiConsegnati: 2, consegneIl: piano[0].consegneIl }])
+  assert.equal(dopo.gruppi[0].esito, "anomalia")
+  assert.equal(dopo.gruppi[0].consegnati, 2)
+  assert.equal(conteggiBlocchetti([{ ...righe[0], blocchettiConsegnati: 2 }]).blocchettiConsegnati, 2)
+})
+
+test("20 euro da soli: anomalia senza blocchetti da consegnare", () => {
+  const gruppo = analizzaBlocchetti([riga({ iuv: "3", importoCentesimi: 2000 })]).gruppi[0]
+  assert.equal(gruppo.blocchetti, 0)
+  assert.equal(gruppo.residuoCentesimi, 2000)
+  assert.equal(gruppo.testo, "20,00\u00a0€ non è un multiplo di 40 €")
+})

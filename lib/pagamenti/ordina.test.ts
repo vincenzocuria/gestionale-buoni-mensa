@@ -71,6 +71,7 @@ function gruppo(id: string, debitore: string, consegnati: number, righe: VoceEle
     sommaCentesimi: 4000,
     blocchetti: 1,
     consegnati,
+    residuoCentesimi: 0,
     testo: "",
   }
   return { tipo: "gruppo", id, gruppo: dati, righe: membri }
