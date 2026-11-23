@@ -87,4 +87,17 @@ export type RiepilogoImport = {
   altriServizi: number
   righeLette: number
   errori: string[]
+  /** Pagati su un altro servizio con «mensa» nella causale: fuori dal registro, da gestire a mano. */
+  mensaSuAltroServizio: SegnalazioneMensa[]
+}
+
+export type SegnalazioneMensa = {
+  riga: number
+  iuv: string
+  servizio: string
+  causale: string
+  debitore: string
+  codiceFiscale: string
+  importoCentesimi: number
+  dataPagamento: string | null
 }

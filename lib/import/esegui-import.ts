@@ -13,6 +13,19 @@ export async function eseguiImport(client: Sql, csv: string): Promise<RiepilogoI
   riepilogo.righeLette = lettura.righeLette
   riepilogo.errori = lettura.errori
   riepilogo.altriServizi = lettura.altriServizi
+  // Solo dal primo anno gestito dal registro: i vecchi casi non servono più.
+  riepilogo.mensaSuAltroServizio = lettura.mensaSuAltroServizio
+    .filter(({ riga }) => etichettaImportabile(riga))
+    .map(({ numero, riga }) => ({
+      riga: numero,
+      iuv: riga.iuv,
+      servizio: riga.servizio,
+      causale: riga.causale,
+      debitore: riga.debitore,
+      codiceFiscale: riga.codiceFiscale,
+      importoCentesimi: riga.importoCentesimi,
+      dataPagamento: riga.dataPagamento,
+    }))
 
   await client.begin(async (transazione) => {
     // Un import alla volta (come il lock di scrittura di SQLite): due import
