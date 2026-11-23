@@ -46,11 +46,12 @@ export function pianoConsegnaGruppo(
   gruppo: GruppoAudit,
   azione: "completa" | "parziale" | "annulla",
   adesso: string,
+  quanti: number | null = null,
 ): { iuv: string; consegnati: number; consegneIl: string[] }[] {
   const n = gruppo.blocchetti
   const usato = Math.min(n, gruppo.pagamenti.reduce((somma, riga) => somma + riga.blocchettiConsegnati, 0))
   let prossimo = usato
-  if (azione === "completa") prossimo = n
+  if (azione === "completa") prossimo = Math.min(n, usato + (quanti ?? n))
   else if (azione === "annulla") prossimo = 0
   else prossimo = Math.min(n, usato + 1)
   return gruppo.pagamenti.map((pagamento, indice) => {

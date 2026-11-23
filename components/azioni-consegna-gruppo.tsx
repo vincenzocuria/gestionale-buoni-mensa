@@ -2,9 +2,11 @@
 
 import { useState } from "react"
 import { ModaleConferma } from "@/components/modale-conferma"
+import { ModaleConsegna } from "@/components/modale-consegna"
+import { formatEuro } from "@/lib/format/euro"
 import { ModificaConsegna } from "@/components/modifica-consegna"
 import { Button } from "@/components/ui/button"
-import { testoConfermaAnnulla, testoConfermaConsegna } from "@/lib/consegna/testo-conferma"
+import { testoConfermaAnnulla } from "@/lib/consegna/testo-conferma"
 import type { GruppoAudit } from "@/lib/audit/tipi"
 import type { AzioneConsegna, DettaglioConsegna } from "@/lib/pagamenti/tipi"
 
@@ -48,14 +50,20 @@ export function AzioniConsegnaGruppo({
         />
       ) : null}
       {conferma ? (
-        <ModaleConferma
-          titolo="Consegna"
-          testo={testoConfermaConsegna(gruppo.debitore, Math.max(residui, 1), true)}
+        <ModaleConsegna
+          debitore={gruppo.debitore}
+          residui={residui}
+          accorpato={gruppo.esito === "accorpato" && gruppo.pagamenti.length > 1}
+          nota={
+            gruppo.esito === "anomalia" && gruppo.residuoCentesimi > 0
+              ? `Restano ${formatEuro(gruppo.residuoCentesimi)} da chiarire: il pagamento resta tra le anomalie.`
+              : undefined
+          }
           pending={pending}
           onChiudi={() => setConferma(false)}
-          onConferma={() => {
+          onConferma={(quanti) => {
             setConferma(false)
-            onConsegna("completa")
+            onConsegna("completa", { quanti })
           }}
         />
       ) : null}

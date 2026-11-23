@@ -58,3 +58,15 @@ test("non consegna un bollettino non pagato", () => {
   const esito = applicaConsegna(base({ dataPagamento: null }), "completa", ORA)
   assert.equal(esito.ok, false)
 })
+
+test("Consegna sceglie quanti blocchetti dare, senza superare i dovuti", () => {
+  const tre = base({ importoCentesimi: 12000, blocchettiDovuti: 3 })
+  const uno = applicaConsegna(tre, "completa", "2026-11-23T10:00:00", 1)
+  assert.ok(uno.ok)
+  if (!uno.ok) return
+  assert.equal(uno.record.blocchettiConsegnati, 1)
+  assert.equal(uno.record.consegneIl.length, 1)
+  const resto = applicaConsegna(uno.record, "completa", "2026-11-23T11:00:00", 9)
+  assert.ok(resto.ok)
+  if (resto.ok) assert.equal(resto.record.blocchettiConsegnati, 3)
+})

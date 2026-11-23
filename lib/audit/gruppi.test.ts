@@ -110,3 +110,12 @@ test("20 euro da soli: anomalia senza blocchetti da consegnare", () => {
   assert.equal(gruppo.residuoCentesimi, 2000)
   assert.equal(gruppo.testo, "20,00\u00a0€ non è un multiplo di 40 €")
 })
+
+test("consegna di una parte: si sceglie quanti blocchetti dare", () => {
+  const righe = [riga({ iuv: "28", importoCentesimi: 10000, debitore: "BARBIERI RITA", codiceFiscale: "BRB" })]
+  const gruppo = analizzaBlocchetti(righe).gruppi[0]
+  const uno = pianoConsegnaGruppo(gruppo, "completa", "2026-11-23T10:30:00", 1)
+  assert.equal(uno[0].consegnati, 1)
+  const dopo = analizzaBlocchetti([{ ...righe[0], blocchettiConsegnati: 1, consegneIl: uno[0].consegneIl }]).gruppi[0]
+  assert.equal(pianoConsegnaGruppo(dopo, "completa", "2026-11-23T11:00:00", 5)[0].consegnati, 2)
+})

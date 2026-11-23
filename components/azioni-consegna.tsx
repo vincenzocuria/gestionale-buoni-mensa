@@ -2,9 +2,10 @@
 
 import { useState } from "react"
 import { ModaleConferma } from "@/components/modale-conferma"
+import { ModaleConsegna } from "@/components/modale-consegna"
 import { ModificaConsegna } from "@/components/modifica-consegna"
 import { Button } from "@/components/ui/button"
-import { testoConfermaAnnulla, testoConfermaConsegna } from "@/lib/consegna/testo-conferma"
+import { testoConfermaAnnulla } from "@/lib/consegna/testo-conferma"
 import type { AzioneConsegna, DettaglioConsegna, RigaElenco } from "@/lib/pagamenti/tipi"
 
 export function AzioniConsegna({
@@ -50,14 +51,14 @@ export function AzioniConsegna({
         onAzione={onAzione}
       />
       {conferma ? (
-        <ModaleConferma
-          titolo="Consegna"
-          testo={testoConfermaConsegna(riga.debitore, Math.max(residui, 1))}
+        <ModaleConsegna
+          debitore={riga.debitore}
+          residui={residui}
           pending={pending}
           onChiudi={() => setConferma(false)}
-          onConferma={() => {
+          onConferma={(quanti) => {
             setConferma(false)
-            onAzione("completa")
+            onAzione("completa", { quanti })
           }}
         />
       ) : null}

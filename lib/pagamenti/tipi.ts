@@ -58,6 +58,8 @@ export type AzioneConsegna = "completa" | "parziale" | "annulla" | "modifica" | 
 export type DettaglioConsegna = {
   indice?: number
   quando?: string
+  /** Solo per «completa»: quanti blocchetti consegnare ora (default: tutti quelli mancanti). */
+  quanti?: number
 }
 
 export type EsitoMerge =

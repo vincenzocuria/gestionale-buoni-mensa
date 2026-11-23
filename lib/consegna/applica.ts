@@ -5,6 +5,7 @@ export function applicaConsegna(
   pagamento: Pagamento,
   azione: "completa" | "parziale" | "annulla",
   adesso: string,
+  quanti: number | null = null,
 ): { ok: true; record: Pagamento } | { ok: false; messaggio: string } {
   if (!pagamento.dataPagamento) {
     return { ok: false, messaggio: "Il bollettino non è pagato: la consegna non è disponibile." }
@@ -14,12 +15,14 @@ export function applicaConsegna(
     if (pagamento.blocchettiConsegnati >= pagamento.blocchettiDovuti) {
       return { ok: false, messaggio: "I blocchetti sono già tutti consegnati." }
     }
+    const residui = pagamento.blocchettiDovuti - pagamento.blocchettiConsegnati
+    const consegnati = pagamento.blocchettiConsegnati + Math.min(residui, quanti ?? residui)
     return {
       ok: true,
       record: {
         ...pagamento,
-        blocchettiConsegnati: pagamento.blocchettiDovuti,
-        consegneIl: allineaConsegne(pagamento.consegneIl, pagamento.blocchettiDovuti, adesso),
+        blocchettiConsegnati: consegnati,
+        consegneIl: allineaConsegne(pagamento.consegneIl, consegnati, adesso),
       },
     }
   }

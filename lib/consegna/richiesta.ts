@@ -6,6 +6,7 @@ export type CorpoConsegna = {
   azione: AzioneConsegna
   indice: number | null
   quando: string | null
+  quanti: number | null
 }
 
 export function leggiCorpoConsegna(corpo: unknown): CorpoConsegna | null {
@@ -23,5 +24,10 @@ export function leggiCorpoConsegna(corpo: unknown): CorpoConsegna | null {
     if (typeof record.quando !== "string") return null
     quando = record.quando
   }
-  return { azione: azione as AzioneConsegna, indice, quando }
+  let quanti: number | null = null
+  if (record.quanti != null) {
+    if (typeof record.quanti !== "number" || !Number.isInteger(record.quanti) || record.quanti < 1) return null
+    quanti = record.quanti
+  }
+  return { azione: azione as AzioneConsegna, indice, quando, quanti }
 }
