@@ -9,8 +9,8 @@ export function pianoOrarioGruppo(
   indice: number | null,
   quando: string | null,
 ): { ok: true; piano: VocePiano[] } | { ok: false; messaggio: string } {
-  if (gruppo.esito !== "accorpato" || gruppo.pagamenti.length === 0) {
-    return { ok: false, messaggio: "Accorpamento non trovato." }
+  if (gruppo.blocchetti <= 0 || gruppo.pagamenti.length === 0) {
+    return { ok: false, messaggio: "Nessun blocchetto da consegnare per questo pagamento." }
   }
   const tempi = gruppo.pagamenti.flatMap((pagamento) => pagamento.consegneIl ?? [])
   if (azione === "registra") {

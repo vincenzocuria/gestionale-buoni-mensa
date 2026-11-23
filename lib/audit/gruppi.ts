@@ -101,18 +101,26 @@ function migliorSottoinsieme(voci: RigaAudit[]): RigaAudit[] | null {
 
 function gruppo(pagamenti: RigaAudit[], esito: "accorpato" | "anomalia"): GruppoAudit {
   const sommaCentesimi = pagamenti.reduce((somma, riga) => somma + riga.importoCentesimi, 0)
-  const blocchetti = esito === "accorpato" ? numeroBlocchetti(sommaCentesimi) : 0
+  // Anomalia: si possono consegnare i blocchetti interi già pagati (100 € = 2 da 40 €);
+  // il resto (20 €) resta in anomalia da chiarire.
+  const blocchetti =
+    esito === "accorpato" ? numeroBlocchetti(sommaCentesimi) : Math.max(0, Math.floor(sommaCentesimi / CENTESIMI_BLOCCHETTO))
+  const residuoCentesimi = esito === "accorpato" ? 0 : Math.max(0, sommaCentesimi - blocchetti * CENTESIMI_BLOCCHETTO)
   const consegnati = Math.min(
     blocchetti,
     pagamenti.reduce((somma, riga) => somma + riga.blocchettiConsegnati, 0),
   )
   const pezzi = pagamenti.map((riga) => `${formatEuro(riga.importoCentesimi)} (IUV ${riga.iuv})`).join(" + ")
+  const parziali =
+    blocchetti > 0
+      ? `: ${blocchetti} ${blocchetti === 1 ? "blocchetto consegnabile" : "blocchetti consegnabili"}, restano ${formatEuro(residuoCentesimi)} da chiarire`
+      : ""
   const testo =
     esito === "accorpato"
       ? `${pezzi} = ${formatEuro(sommaCentesimi)} · ${blocchetti} ${blocchetti === 1 ? "blocchetto" : "blocchetti"}`
       : pagamenti.length === 1
-        ? `${formatEuro(sommaCentesimi)} non è un multiplo di 40 €`
-        : `${pezzi} = ${formatEuro(sommaCentesimi)}, non quadra con i blocchetti da 40 €`
+        ? `${formatEuro(sommaCentesimi)} non è un multiplo di 40 €${parziali}`
+        : `${pezzi} = ${formatEuro(sommaCentesimi)}, non quadra con i blocchetti da 40 €${parziali}`
   return {
     id: pagamenti.map((riga) => riga.iuv).sort().join("+"),
     annoScolastico: pagamenti[0].annoScolastico,
@@ -122,6 +130,7 @@ function gruppo(pagamenti: RigaAudit[], esito: "accorpato" | "anomalia"): Gruppo
     sommaCentesimi,
     blocchetti,
     consegnati,
+    residuoCentesimi,
     testo,
   }
 }

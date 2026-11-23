@@ -20,7 +20,6 @@ export function conteggiBlocchetti(righe: RigaAudit[]): {
   }
 
   for (const gruppo of analisi.gruppi) {
-    if (gruppo.esito !== "accorpato") continue
     dovuti += gruppo.blocchetti
     consegnati += gruppo.consegnati
   }

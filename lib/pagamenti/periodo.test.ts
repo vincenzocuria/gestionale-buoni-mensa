@@ -48,6 +48,7 @@ test("il periodo è inclusivo e un accorpamento resta intero se un versamento ca
       sommaCentesimi: 4000,
       blocchetti: 1,
       consegnati: 0,
+      residuoCentesimi: 0,
       testo: "",
     },
     righe: [meta.riga, altra.riga],

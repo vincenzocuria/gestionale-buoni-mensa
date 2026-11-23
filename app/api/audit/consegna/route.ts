@@ -26,8 +26,9 @@ export async function POST(request: Request) {
   try {
     const client = await dbPronto()
     const viste = (await leggiTutti(client)).map(aVista)
-    const gruppo = analizzaBlocchetti(viste).gruppi.find((voce) => voce.id === id && voce.esito === "accorpato")
-    if (!gruppo) return NextResponse.json({ errore: "Accorpamento non trovato." }, { status: 404 })
+    // Anche le anomalie con almeno un blocchetto intero pagato (es. 100 € = 2 blocchetti + 20 €).
+    const gruppo = analizzaBlocchetti(viste).gruppi.find((voce) => voce.id === id && voce.blocchetti > 0)
+    if (!gruppo) return NextResponse.json({ errore: "Nessun blocchetto da consegnare per questo pagamento." }, { status: 404 })
 
     const esito =
       letto.azione === "modifica" || letto.azione === "rimuovi" || letto.azione === "registra"

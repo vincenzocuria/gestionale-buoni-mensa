@@ -38,7 +38,7 @@ export function AzioniConsegnaGruppo({
           Annulla
         </Button>
       ) : null}
-      {gruppo.esito === "accorpato" ? (
+      {gruppo.blocchetti > 0 ? (
         <ModificaConsegna
           tempi={tempi}
           consegnati={gruppo.consegnati}

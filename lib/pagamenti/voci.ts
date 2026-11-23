@@ -53,7 +53,7 @@ export function statoVoce(voce: VoceElenco): StatoPagamento {
 }
 
 export function statoGruppo(gruppo: GruppoAudit): StatoPagamento {
-  if (gruppo.esito === "accorpato" && gruppo.blocchetti > 0 && gruppo.consegnati >= gruppo.blocchetti) {
+  if (gruppo.blocchetti > 0 && gruppo.consegnati >= gruppo.blocchetti) {
     return "consegnato"
   }
   if (gruppo.pagamenti.every((pagamento) => !pagamento.dataPagamento)) return "non_pagato"
