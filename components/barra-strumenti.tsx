@@ -4,6 +4,7 @@ import { useRef } from "react"
 import { FileSpreadsheet, FileText, Upload } from "lucide-react"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { StampaRegistro } from "@/components/stampa-registro"
 import { FILTRI } from "@/lib/pagamenti/filtra"
 import type { Periodo } from "@/lib/pagamenti/periodo"
 import type { FiltroElenco } from "@/lib/pagamenti/tipi"
@@ -47,6 +48,7 @@ export function BarraStrumenti({
           />
         </div>
         <div className="flex flex-wrap gap-2">
+          <StampaRegistro anno={anno} ricerca={ricerca} periodo={periodo} />
           <a className={buttonVariants({ variant: "outline" })} href={linkExport("excel", anno, filtro, ricerca, periodo)}>
             <FileSpreadsheet />
             Excel

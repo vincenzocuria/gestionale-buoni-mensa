@@ -22,7 +22,7 @@ function impagina(titolo: string, fogli: Foglio[]): string[] {
   }
 
   function testo(x: number, valore: string, dimensione = 9) {
-    comandi.push(`BT /F1 ${dimensione} Tf ${x} ${y} Td (${pdf(valore)}) Tj ET`)
+    comandi.push(`BT /F1 ${dimensione} Tf ${x} ${y} Td (${testoPdf(valore)}) Tj ET`)
   }
 
   function riga(celle: string[], colonne: number[]) {
@@ -69,7 +69,7 @@ function accorcia(valore: string, larghezza: number): string {
   return `${valore.slice(0, massimo - 1)}…`
 }
 
-function pdf(valore: string): string {
+export function testoPdf(valore: string): string {
   let out = ""
   for (const carattere of valore) {
     const codice = carattere.codePointAt(0) ?? 63
@@ -87,11 +87,11 @@ function pdf(valore: string): string {
   return out
 }
 
-function byteWinAnsi(codice: number): number {
+export function byteWinAnsi(codice: number): number {
   if (codice >= 32 && codice <= 255) return codice
   if (codice === 0x20ac) return 0x80
   if (codice === 0x2026) return 0x85
-  return 0x3f
+  return WINANSI_EXTRA[codice] ?? 0x3f
 }
 
 function documento(pagine: string[]): Uint8Array {
@@ -126,4 +126,14 @@ function documento(pagine: string[]): Uint8Array {
   }
   pdfTesto += `trailer << /Size ${corpo.length + 1} /Root 1 0 R >>\nstartxref\n${inizioXref}\n%%EOF`
   return Buffer.from(pdfTesto)
+}
+
+const WINANSI_EXTRA: Record<number, number> = {
+  0x2018: 0x91,
+  0x2019: 0x92,
+  0x201c: 0x93,
+  0x201d: 0x94,
+  0x2022: 0x95,
+  0x2013: 0x96,
+  0x2014: 0x97,
 }
